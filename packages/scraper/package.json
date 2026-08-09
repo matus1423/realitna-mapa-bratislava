@@ -1,0 +1,13 @@
+{
+  "name": "@rmb/scraper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "scrape": "tsx --env-file-if-exists=../../.env src/index.ts"
+  },
+  "dependencies": {
+    "@rmb/db": "*",
+    "@rmb/shared": "*"
+  }
+}

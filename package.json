@@ -1,0 +1,28 @@
+{
+  "name": "realitna-mapa-bratislava",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/shared",
+    "packages/db",
+    "packages/scraper",
+    "packages/api",
+    "packages/web"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "scrape": "npm run scrape -w @rmb/scraper --",
+    "api": "npm run dev -w @rmb/api",
+    "web": "npm run dev -w @rmb/web",
+    "dev": "npm run api & npm run web",
+    "typecheck": "for p in shared db scraper api web; do npx tsc --noEmit -p packages/$p/tsconfig.json || exit 1; done"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

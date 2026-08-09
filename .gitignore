@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+*.tsbuildinfo
+
+# dáta a HTML cache sa neverzujú
+data/*.db
+data/*.db-journal
+data/cache/
