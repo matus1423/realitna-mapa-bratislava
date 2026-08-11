@@ -1,4 +1,4 @@
-import type { DealType, PropertyType } from '@rmb/shared';
+import type { DealType } from '@rmb/shared';
 import type { MapState } from '../state/useUrlState.js';
 
 interface Props {
@@ -6,13 +6,6 @@ interface Props {
   onChange: (patch: Partial<MapState>) => void;
   visibleCount: number;
 }
-
-const PROPERTY_OPTIONS: { value: PropertyType; label: string }[] = [
-  { value: 'byt', label: 'Byty' },
-  { value: 'dom', label: 'Domy' },
-  { value: 'pozemok', label: 'Pozemky' },
-  { value: 'komercne', label: 'Komerčné' },
-];
 
 const ROOM_OPTIONS = [
   { value: 1, label: '1 izb.' },
@@ -38,24 +31,6 @@ export function FilterPanel({ state, onChange, visibleCount }: Props) {
               onClick={() => onChange({ dealType: deal })}
             >
               {deal === 'predaj' ? 'Predaj' : 'Prenájom'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="panel-section">
-        <div className="chip-grid">
-          {PROPERTY_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              className={`chip${state.propertyTypes.includes(option.value) ? ' is-active' : ''}`}
-              onClick={() => {
-                const next = toggle(state.propertyTypes, option.value);
-                // prázdny výber by znamenal prázdnu mapu — aspoň jeden typ nechávame
-                if (next.length > 0) onChange({ propertyTypes: next });
-              }}
-            >
-              {option.label}
             </button>
           ))}
         </div>
@@ -105,7 +80,6 @@ export function FilterPanel({ state, onChange, visibleCount }: Props) {
           onClick={() =>
             onChange({
               dealType: 'predaj',
-              propertyTypes: ['byt', 'dom'],
               rooms: [],
               priceMin: undefined,
               priceMax: undefined,

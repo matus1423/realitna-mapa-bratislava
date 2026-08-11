@@ -12,6 +12,15 @@ const USER_AGENT =
   'realitna-mapa-bratislava/0.1 (osobný prototyp; kontakt: matus.mader00@gmail.com)';
 
 let lastRequestAt = 0;
+let minDelayMs = 0;
+
+/**
+ * Zvýši pauzu nad rámec `SCRAPE_DELAY_MS` pre portály, ktoré si to pýtajú
+ * v robots.txt (topreality.sk má `Request-rate: 10/1m`, čiže 6 s).
+ */
+export function setMinDelay(ms: number): void {
+  minDelayMs = ms;
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -19,7 +28,8 @@ function sleep(ms: number): Promise<void> {
 
 /** Rate-limit je globálny, nie per-doména — pri jednom zdroji je to prísnejšie a stačí to. */
 async function throttle(): Promise<void> {
-  const waitFor = lastRequestAt + DELAY_MS - Date.now();
+  const delay = Math.max(DELAY_MS, minDelayMs);
+  const waitFor = lastRequestAt + delay - Date.now();
   if (waitFor > 0) await sleep(waitFor);
   lastRequestAt = Date.now();
 }

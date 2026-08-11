@@ -40,7 +40,11 @@ CREATE TABLE IF NOT EXISTS listings (
   scraped_at        TEXT NOT NULL,
 
   -- inzerát zmizol z portálu; z mapy ho vyradíme, ale históriu si necháme
-  is_active         INTEGER NOT NULL DEFAULT 1
+  is_active         INTEGER NOT NULL DEFAULT 1,
+
+  -- id "kanonického" inzerátu, ak ide o tú istú nehnuteľnosť z iného portálu.
+  -- NULL = toto je kanonický záznam a patrí na mapu.
+  duplicate_of      TEXT
 );
 
 -- Hlavný dotaz mapy je "daj inzeráty vo výreze". SQLite nemá priestorový index,
@@ -49,6 +53,7 @@ CREATE TABLE IF NOT EXISTS listings (
 CREATE INDEX IF NOT EXISTS idx_listings_bbox ON listings (lat, lng);
 CREATE INDEX IF NOT EXISTS idx_listings_filters ON listings (deal_type, property_type, price);
 CREATE INDEX IF NOT EXISTS idx_listings_active ON listings (is_active);
+CREATE INDEX IF NOT EXISTS idx_listings_source_id ON listings (source_id);
 
 -- Cenová história: bez nej sa nedá ukázať "zlacnelo o 20 000 €",
 -- čo je na referenčnej mape vizuálne najsilnejší prvok.

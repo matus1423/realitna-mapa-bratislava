@@ -1,5 +1,10 @@
 import type { Listing } from '@rmb/shared';
 
+export interface Coords {
+  lat: number;
+  lng: number;
+}
+
 export interface ListPageResult {
   /** URL detailov nájdených na tejto stránke. */
   detailUrls: string[];
@@ -13,10 +18,34 @@ export interface ListPageResult {
  */
 export interface Source {
   readonly name: string;
-  /** URL stránky so zoznamom pre danú stranu (1-based). */
-  listUrl(page: number): string;
+
+  /**
+   * Vetvy, ktoré treba prejsť samostatne (napr. jednotlivé mestské časti majú
+   * vlastné stránkovanie). Driver ide kategóriu po kategórii, aby prázdna
+   * stránka v jednej nezastavila zbieranie v ostatných.
+   */
+  readonly categories: readonly string[];
+
+  /** Pauza medzi requestmi, ak portál vyžaduje viac než globálne nastavenie. */
+  readonly minDelayMs?: number;
+
+  /** URL stránky so zoznamom; `page` je 1-based. */
+  listUrl(categoryIndex: number, page: number): string;
+
   /** Vytiahne odkazy na detaily zo stránky so zoznamom. */
-  parseListPage(html: string): ListPageResult;
-  /** Zparsuje detail inzerátu; `null` = inzerát preskočiť (neaktívny, mimo oblasti). */
-  parseDetail(html: string, url: string): Listing | null;
+  parseListPage(html: string, listUrl: string): ListPageResult;
+
+  /**
+   * Zparsuje detail inzerátu; `null` = inzerát preskočiť (neaktívny, mimo
+   * oblasti, nie byt). `coords` je vyplnené len pri portáloch, ktoré držia
+   * polohu mimo detailu.
+   */
+  parseDetail(html: string, url: string, coords?: Coords | null): Listing | null;
+
+  /**
+   * Voliteľné: portál načítava mapu zvlášť (zoznamrealit.sk). Driver stiahne
+   * tento endpoint pred `parseDetail` a výsledok mu podá v `coords`.
+   */
+  coordsUrl?(html: string, url: string): string | null;
+  parseCoords?(html: string): Coords | null;
 }

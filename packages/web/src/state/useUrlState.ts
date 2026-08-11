@@ -17,7 +17,7 @@ const DEFAULTS: MapState = {
   lon: 17.1077,
   zoom: 13,
   dealType: 'predaj',
-  propertyTypes: ['byt', 'dom'],
+  propertyTypes: ['byt'],
   rooms: [],
 };
 

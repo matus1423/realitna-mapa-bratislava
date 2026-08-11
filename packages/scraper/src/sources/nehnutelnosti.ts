@@ -11,14 +11,11 @@ import type { ListPageResult, Source } from './source.js';
 const ORIGIN = 'https://www.nehnutelnosti.sk';
 
 /**
- * Byty aj domy na predaj v Bratislave. robots.txt zakazuje `/api/`
+ * Byty na predaj v Bratislave. robots.txt zakazuje `/api/`
  * a zoradené varianty (`?order=...`), preto ideme cez neutrálne
  * `/vysledky/...` stránky a stránkovanie `?page=N`.
  */
-const LIST_PATHS = [
-  '/vysledky/bratislavsky-kraj/bratislava/predaj/byty',
-  '/vysledky/bratislavsky-kraj/bratislava/predaj/domy',
-];
+const LIST_PATHS = ['/vysledky/bratislavsky-kraj/bratislava/predaj/byty'];
 
 /**
  * Stránka je Next.js App Router — celý objekt inzerátu je v RSC payloade
@@ -131,13 +128,11 @@ function mapDealType(transaction: string | undefined): DealType {
 
 export const nehnutelnostiSource: Source = {
   name: 'nehnutelnosti',
+  categories: LIST_PATHS,
 
-  listUrl(page: number): string {
-    // striedame kategórie: párne indexy byty, nepárne domy
-    const pathIndex = (page - 1) % LIST_PATHS.length;
-    const pageNumber = Math.floor((page - 1) / LIST_PATHS.length) + 1;
-    const path = LIST_PATHS[pathIndex]!;
-    return pageNumber === 1 ? `${ORIGIN}${path}` : `${ORIGIN}${path}?page=${pageNumber}`;
+  listUrl(categoryIndex: number, page: number): string {
+    const path = LIST_PATHS[categoryIndex]!;
+    return page === 1 ? `${ORIGIN}${path}` : `${ORIGIN}${path}?page=${page}`;
   },
 
   parseListPage(html: string): ListPageResult {
@@ -172,6 +167,8 @@ export const nehnutelnostiSource: Source = {
     if (!isInBratislavaArea(lat, lng)) return null;
 
     const params = ad.parameters;
+    // do zoznamu bytov občas prepadne developerský projekt alebo iná kategória
+    if (mapPropertyType(params?.category?.mainValue) !== 'byt') return null;
     const price = params?.price?.priceNum ?? null;
     const areaM2 = parseNumber(params?.area ?? null);
     const now = new Date().toISOString();

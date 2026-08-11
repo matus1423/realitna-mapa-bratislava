@@ -3,7 +3,19 @@ export type DealType = 'predaj' | 'prenajom';
 export type PropertyType = 'byt' | 'dom' | 'pozemok' | 'komercne' | 'ine';
 
 /** Zdroj dát — jeden portál. */
-export type Source = 'nehnutelnosti';
+export type Source =
+  | 'nehnutelnosti'
+  | 'reality'
+  | 'topreality'
+  | 'zoznamrealit'
+  | 'bazos';
+
+/**
+ * nehnutelnosti.sk, reality.sk a topreality.sk patria do tej istej siete
+ * (United Classifieds) a zdieľajú inzeráty. Prvé dva používajú dokonca
+ * rovnaké ID, takže ich duplicity vieme spárovať presne, nie odhadom.
+ */
+export const SHARED_ID_SOURCES: readonly Source[] = ['nehnutelnosti', 'reality'];
 
 /** Ohraničenie výrezu mapy. */
 export interface BBox {

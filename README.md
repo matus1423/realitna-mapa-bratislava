@@ -1,8 +1,11 @@
 # Realitná mapa Bratislava
 
-Interaktívna mapa nehnuteľností na predaj v Bratislave a blízkom okolí.
-Dáta sa scrapujú z verejne dostupných inzerátov, ukladajú do SQLite
-a servujú na mapu postavenú na Leaflete a OpenStreetMap.
+Interaktívna mapa **bytov na predaj** v Bratislave a blízkom okolí.
+Dáta sa scrapujú z verejne dostupných inzerátov na štyroch portáloch,
+deduplikujú, ukladajú do SQLite a servujú na mapu postavenú na Leaflete
+a OpenStreetMap.
+
+Domy, pozemky ani komerčné priestory sa nezbierajú.
 
 Osobný prototyp, nie komerčný produkt.
 
@@ -28,9 +31,25 @@ npm run dev                     # API na :3001 + web na :5175
 ## Scraper
 
 ```bash
-npm run scrape -- --source nehnutelnosti --limit 500
-npm run scrape -- --limit 5000 --max-pages 400   # plná Bratislava, ~1,7 h
+npm run scrape                                       # všetky zdroje, 100 z každého
+npm run scrape -- --source zoznamrealit --limit 500  # jeden zdroj
+npm run scrape -- --limit 20000 --max-pages 400      # plná Bratislava, niekoľko hodín
 ```
+
+### Zdroje
+
+| Zdroj | Bytov v BA | Poloha | Poznámka |
+|---|---|---|---|
+| nehnutelnosti.sk | ~4150 | presná (stred ulice, 200 m) | hlavný zdroj |
+| topreality.sk | ~1316 | presná | robots.txt žiada 6 s medzi requestmi |
+| zoznamrealit.sk | ~1200 | presná | dva requesty na inzerát (mapa zvlášť) |
+| bazos.sk | jednotky na stranu | **ťažisko PSČ (~1,5 km)** | nedá sa filtrovať na BA |
+| reality.sk | — | presná | **vypnuté** — portál blokuje neprehliadačových klientov |
+
+Prekryv medzi portálmi je vysoký: nehnutelnosti.sk, reality.sk a topreality.sk
+patria do tej istej siete. Deduplikácia beží automaticky na konci každého behu
+a označuje duplicity cez `duplicate_of` — nič nemaže, mapa len zobrazuje
+kanonický záznam. Detaily v [docs/sources.md](docs/sources.md).
 
 Pravidlá, ktoré scraper dodržiava:
 
@@ -41,7 +60,9 @@ Pravidlá, ktoré scraper dodržiava:
   uvádza `Crawl-delay` alebo `Request-rate`, scraper to vypíše.
 - **Cache na disku** (`data/cache/`) — tá istá stránka sa počas ladenia
   parsera nesťahuje opakovane. Vypni cez `SCRAPE_USE_CACHE=0`.
-- Vlastný `User-Agent` s kontaktom, žiadne vydávanie sa za prehliadač.
+- **Vlastný `User-Agent` s kontaktom, žiadne vydávanie sa za prehliadač.**
+  Ak portál kvôli tomu odmietne obsluhu (reality.sk), zdroj sa vypne — obchádzať
+  blokáciu prezlečením za prehliadač nie je súčasť projektu.
 
 Detaily o štruktúre dát jednotlivých portálov sú v [docs/sources.md](docs/sources.md).
 
@@ -61,6 +82,9 @@ výreze to je rozdiel medzi plynulou a trhanou mapou.
 
 Ďalšie endpointy: `/api/listings/by-id?ids=…` (detaily pre otvorenú kartu),
 `/api/listings/:id/price-history`, `/api/stats`.
+
+Odpovede obsahujú len kanonické záznamy — inzeráty označené ako duplicity
+(`duplicate_of IS NOT NULL`) sa na mapu neposielajú.
 
 ## Mapa
 

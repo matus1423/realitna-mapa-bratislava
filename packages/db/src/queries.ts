@@ -145,6 +145,8 @@ interface FindOptions extends ListingFilters {
 function buildWhere(opts: FindOptions): { sql: string; params: unknown[] } {
   const clauses: string[] = [
     'l.is_active = 1',
+    // duplicity z iných portálov na mapu nepatria
+    'l.duplicate_of IS NULL',
     'l.lat BETWEEN ? AND ?',
     'l.lng BETWEEN ? AND ?',
   ];
@@ -278,12 +280,29 @@ export function getPriceHistory(listingId: string): { price: number; seenAt: str
     .map((r) => ({ price: r.price, seenAt: r.seen_at }));
 }
 
-export function countListings(): { total: number; active: number } {
+export function countListings(): { total: number; active: number; unique: number } {
   const db = getDb();
   const row = db
-    .prepare<[], { total: number; active: number }>(
-      'SELECT COUNT(*) AS total, SUM(is_active) AS active FROM listings',
+    .prepare<[], { total: number; active: number; unique: number }>(
+      `SELECT COUNT(*) AS total,
+              SUM(is_active) AS active,
+              SUM(is_active = 1 AND duplicate_of IS NULL) AS "unique"
+         FROM listings`,
     )
     .get();
-  return { total: row?.total ?? 0, active: row?.active ?? 0 };
+  return { total: row?.total ?? 0, active: row?.active ?? 0, unique: row?.unique ?? 0 };
+}
+
+/** Rozpad počtu podľa portálu — na kontrolu, koľko ktorý zdroj reálne pridal. */
+export function countBySource(): { source: string; total: number; unique: number }[] {
+  const db = getDb();
+  return db
+    .prepare<[], { source: string; total: number; unique: number }>(
+      `SELECT source,
+              COUNT(*) AS total,
+              SUM(duplicate_of IS NULL) AS "unique"
+         FROM listings WHERE is_active = 1
+        GROUP BY source ORDER BY total DESC`,
+    )
+    .all();
 }

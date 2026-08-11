@@ -19,11 +19,32 @@ export function getDb(): Database.Database {
   // WAL nechá scraper zapisovať, kým API súčasne číta.
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
+  // dlhé crawly viacerých zdrojov sa prekrývajú — radšej počkať než spadnúť na SQLITE_BUSY
+  db.pragma('busy_timeout = 15000');
 
   const schema = readFileSync(resolve(here, 'schema.sql'), 'utf8');
   db.exec(schema);
+  migrate(db);
 
   return db;
+}
+
+/**
+ * `CREATE TABLE IF NOT EXISTS` nepridá stĺpec do už existujúcej tabuľky,
+ * takže nové stĺpce dopĺňame ručne. Držíme to takto jednoducho, kým je
+ * databáza kedykoľvek znovu naplniteľná scraperom.
+ */
+function migrate(db: Database.Database): void {
+  const info = db.pragma('table_info(listings)') as { name: string }[];
+  const columns = new Set(info.map((c) => c.name));
+
+  if (!columns.has('duplicate_of')) {
+    db.exec('ALTER TABLE listings ADD COLUMN duplicate_of TEXT');
+  }
+
+  // index až tu, nie v schema.sql — tam by na staršej databáze bežal skôr,
+  // než by stĺpec vôbec existoval
+  db.exec('CREATE INDEX IF NOT EXISTS idx_listings_duplicate ON listings (duplicate_of)');
 }
 
 export function closeDb(): void {
