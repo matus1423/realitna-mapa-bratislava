@@ -21,6 +21,8 @@ export interface MarkerGroup {
   hasNew: boolean;
   propertyType: string;
   rooms: number | null;
+  /** Aspoň jeden inzerát v skupine má len približnú polohu. */
+  imprecise: boolean;
 }
 
 export function groupByCoordinate(markers: ListingMarker[]): MarkerGroup[] {
@@ -43,6 +45,7 @@ export function groupByCoordinate(markers: ListingMarker[]): MarkerGroup[] {
         hasNew: marker.isNew,
         propertyType: marker.propertyType,
         rooms: marker.rooms,
+        imprecise: marker.imprecise,
       });
       continue;
     }
@@ -57,6 +60,7 @@ export function groupByCoordinate(markers: ListingMarker[]): MarkerGroup[] {
       existing.priceDiff = marker.priceDiff;
     }
     if (marker.isNew) existing.hasNew = true;
+    if (marker.imprecise) existing.imprecise = true;
   }
 
   return [...groups.values()];

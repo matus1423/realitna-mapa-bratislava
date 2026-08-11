@@ -3,6 +3,7 @@ import {
   countListings,
   findListingsInBBox,
   findMarkersInBBox,
+  getDuplicatesOf,
   getListingsByIds,
   getPriceHistory,
 } from '@rmb/db';
@@ -88,7 +89,14 @@ export function registerListingRoutes(app: FastifyInstance): void {
     const ids = req.query.ids?.split(',').filter(Boolean) ?? [];
     if (ids.length === 0) return reply.code(400).send({ error: 'Chýba parameter ids' });
     if (ids.length > 100) return reply.code(400).send({ error: 'Maximálne 100 ID naraz' });
-    return reply.send({ listings: getListingsByIds(ids) });
+
+    const listings = getListingsByIds(ids).map((listing) => ({
+      ...listing,
+      // ten istý byt býva na viacerých portáloch; nech je z karty vidieť kde
+      alsoOn: getDuplicatesOf(listing.id),
+    }));
+
+    return reply.send({ listings });
   });
 
   app.get<{ Params: { id: string } }>('/api/listings/:id/price-history', (req, reply) => {

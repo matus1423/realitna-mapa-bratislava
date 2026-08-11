@@ -218,6 +218,14 @@ body {
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
 }
 
+/* Bazoš dáva len ťažisko PSČ. Prerušovaný okraj hovorí "niekde tu",
+   aby taký bod nevyzeral rovnako presne ako adresa na ulicu. */
+.marker-pill.is-imprecise .pill-body {
+  border: 1px dashed #94a3b8;
+  background: #f8fafc;
+  color: #475569;
+}
+
 .marker-pill.is-selected .pill-body {
   background: var(--accent);
   color: #fff;
@@ -424,6 +432,32 @@ body {
   margin-top: 8px;
   font-size: 12px;
   color: var(--muted);
+}
+
+.card-sources {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.card-sources a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.card-sources a:hover {
+  text-decoration: underline;
+}
+
+.card-warning {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 6px;
+  font-size: 11px;
 }
 
 .card-link {

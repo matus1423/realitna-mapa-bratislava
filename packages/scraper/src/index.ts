@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { countListings, upsertListing } from '@rmb/db';
+import { countListings, deactivateMissing, upsertListing } from '@rmb/db';
 import { dedupe } from './dedupe.js';
 import { fetchHtml, setMinDelay } from './http.js';
 import { assertCrawlable } from './robots.js';
@@ -86,6 +86,7 @@ async function collectDetailUrls(source: Source, limit: number, maxPages: number
 
 async function scrapeSource(source: Source, limit: number, maxPages: number): Promise<RunStats> {
   console.log(`\n${'='.repeat(60)}\nZdroj: ${source.name} (limit ${limit})`);
+  const startedAt = new Date().toISOString();
 
   setMinDelay(source.minDelayMs ?? 0);
 
@@ -136,6 +137,16 @@ async function scrapeSource(source: Source, limit: number, maxPages: number): Pr
   console.log(
     `\n  ${source.name}: uložených ${stats.saved}, preskočených ${stats.skipped}, chýb ${stats.failed}`,
   );
+
+  // Zhasnúť nevidené sa dá len vtedy, keď sme zdroj naozaj prešli celý.
+  // Po behu s malým --limit by to zhaslo všetko, na čo sa nedostalo.
+  const wasFullRun = detailUrls.length < limit && stats.failed < detailUrls.length * 0.1;
+  if (wasFullRun) {
+    const gone = deactivateMissing(source.name, startedAt);
+    if (gone > 0) console.log(`  ${gone} inzerátov už na portáli nie je — označené za neaktívne`);
+  } else {
+    console.log('  (beh bol obmedzený limitom alebo mal veľa chýb — zmiznuté inzeráty nezhasínam)');
+  }
 
   return stats;
 }

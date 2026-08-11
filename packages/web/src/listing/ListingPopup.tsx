@@ -2,6 +2,21 @@ import type { Listing } from '@rmb/shared';
 import { useEffect, useState } from 'react';
 import { formatArea, fullPrice, roomsLabel } from '../format.js';
 
+/** Inzerát doplnený o portály, na ktorých ten istý byt visí tiež. */
+interface ListingWithSources extends Listing {
+  alsoOn?: { source: string; sourceUrl: string }[];
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  nehnutelnosti: 'nehnutelnosti.sk',
+  reality: 'reality.sk',
+  topreality: 'topreality.sk',
+  zoznamrealit: 'zoznamrealit.sk',
+  bazos: 'bazos.sk',
+};
+
+const sourceLabel = (source: string): string => SOURCE_LABELS[source] ?? source;
+
 interface Props {
   ids: string[];
   onClose: () => void;
@@ -12,7 +27,7 @@ interface Props {
  * pre mapu popisy ani fotky nie sú, a ani tam nemajú čo robiť.
  */
 export function ListingPopup({ ids, onClose }: Props) {
-  const [listings, setListings] = useState<Listing[] | null>(null);
+  const [listings, setListings] = useState<ListingWithSources[] | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
 
@@ -23,7 +38,7 @@ export function ListingPopup({ ids, onClose }: Props) {
 
     const controller = new AbortController();
     fetch(`/api/listings/by-id?ids=${ids.join(',')}`, { signal: controller.signal })
-      .then((r) => r.json() as Promise<{ listings: Listing[] }>)
+      .then((r) => r.json() as Promise<{ listings: ListingWithSources[] }>)
       // od najlacnejšieho — na pilulke je cena najlacnejšieho z adresy,
       // takže prvá záložka musí ukázať práve ten inzerát
       .then((data) =>
@@ -118,9 +133,29 @@ export function ListingPopup({ ids, onClose }: Props) {
           <div className="card-sub">{Math.round(listing.pricePerM2).toLocaleString('sk-SK')} €/m²</div>
         )}
 
+        {listing.locationRadius != null && listing.locationRadius >= 1000 && (
+          <div className="card-warning">
+            Poloha je len približná — {sourceLabel(listing.source)} uvádza iba PSČ, nie adresu.
+          </div>
+        )}
+
         <a className="card-link" href={listing.sourceUrl} target="_blank" rel="noreferrer noopener">
-          Zobraziť na nehnutelnosti.sk →
+          Zobraziť na {sourceLabel(listing.source)} →
         </a>
+
+        {listing.alsoOn && listing.alsoOn.length > 0 && (
+          <div className="card-sources">
+            Ten istý byt aj na:{' '}
+            {listing.alsoOn.map((other, i) => (
+              <span key={other.sourceUrl}>
+                {i > 0 && ', '}
+                <a href={other.sourceUrl} target="_blank" rel="noreferrer noopener">
+                  {sourceLabel(other.source)}
+                </a>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -95,6 +95,8 @@ export interface ListingMarker {
   priceDiff: number | null;
   /** Inzerát pribudol za posledných 7 dní. */
   isNew: boolean;
+  /** Poloha je len približná (ťažisko PSČ), nie adresa. */
+  imprecise: boolean;
 }
 
 export interface ListingFilters {

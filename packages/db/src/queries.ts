@@ -216,9 +216,11 @@ export function findMarkersInBBox(opts: FindOptions): ListingMarker[] {
       rooms: number | null;
       first_price: number | null;
       published_at: string | null;
+      location_radius: number | null;
     }>(
       `SELECT
          l.id, l.lat, l.lng, l.price, l.property_type, l.rooms, l.published_at,
+         l.location_radius,
          (SELECT ph.price FROM price_history ph
            WHERE ph.listing_id = l.id
            ORDER BY ph.seen_at ASC LIMIT 1) AS first_price
@@ -242,6 +244,9 @@ export function findMarkersInBBox(opts: FindOptions): ListingMarker[] {
         ? row.price - row.first_price
         : null,
     isNew: row.published_at != null && Date.parse(row.published_at) > weekAgo,
+    // Bazoš dáva len ťažisko PSČ — taký bod nesmie na mape vyzerať
+    // rovnako sebavedomo ako adresa presná na ulicu
+    imprecise: (row.location_radius ?? 0) >= 1000,
   }));
 }
 
@@ -278,6 +283,37 @@ export function getPriceHistory(listingId: string): { price: number; seenAt: str
     )
     .all(listingId)
     .map((r) => ({ price: r.price, seenAt: r.seen_at }));
+}
+
+/**
+ * Označí za neaktívne tie inzeráty zdroja, ktoré sme v poslednom behu už
+ * nevideli — typicky preto, že z portálu zmizli. Nemažeme ich, aby ostala
+ * cenová história; z mapy vypadnú cez `is_active`.
+ *
+ * Volať len po behu, ktorý zdroj naozaj prešiel celý. Po behu s `--limit`
+ * by to zhaslo všetko, na čo sa nedostalo.
+ */
+export function deactivateMissing(source: string, seenSince: string): number {
+  const db = getDb();
+  const result = db
+    .prepare('UPDATE listings SET is_active = 0 WHERE source = ? AND scraped_at < ? AND is_active = 1')
+    .run(source, seenSince);
+  return result.changes;
+}
+
+/** Ostatné portály, na ktorých tá istá nehnuteľnosť visí. */
+export function getDuplicatesOf(id: string): { source: string; sourceUrl: string }[] {
+  const db = getDb();
+  return db
+    .prepare<[string, string], { source: string; source_url: string }>(
+      `SELECT source, source_url FROM listings
+        WHERE duplicate_of = ? AND is_active = 1
+        UNION
+       SELECT l.source, l.source_url FROM listings l
+        WHERE l.id = (SELECT duplicate_of FROM listings WHERE id = ?) AND l.is_active = 1`,
+    )
+    .all(id, id)
+    .map((r) => ({ source: r.source, sourceUrl: r.source_url }));
 }
 
 export function countListings(): { total: number; active: number; unique: number } {

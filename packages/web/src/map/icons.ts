@@ -18,7 +18,8 @@ export function createPriceIcon(group: MarkerGroup, isSelected: boolean): L.DivI
   const newDot = group.hasNew ? '<span class="pill-new" title="Nový inzerát"></span>' : '';
 
   const html =
-    `<div class="marker-pill${isSelected ? ' is-selected' : ''}">` +
+    `<div class="marker-pill${isSelected ? ' is-selected' : ''}${group.imprecise ? ' is-imprecise' : ''}"` +
+    `${group.imprecise ? ' title="Poloha je len približná — portál uvádza iba PSČ"' : ''}>` +
     `<div class="pill-body">${countBadge}${newDot}<span class="pill-price">${compactPrice(group.price)}</span></div>` +
     `${diffBadge}` +
     '</div>';
