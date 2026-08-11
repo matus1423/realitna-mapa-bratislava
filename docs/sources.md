@@ -54,12 +54,31 @@ Geokódovanie cez Nominatim teda netreba.
 | `address` | `location.name` |
 | `advertiserName` | `advertiser.agency.name`, inak `advertiser.name` |
 
-**Stránky so zoznamom:** `/vysledky/bratislavsky-kraj/bratislava/predaj/{byty,domy}`,
+**Stránky so zoznamom:** `/vysledky/byty/bratislava-{i,ii,iii,iv,v}/predaj`,
 stránkovanie `?page=N`, ~23 inzerátov na stránku. Súradnice na nich **nie sú** —
 tie sú až v detaile, takže detail treba stiahnuť pre každý inzerát zvlášť.
 
-**Objem:** byty na predaj v Bratislave hlásia `totalCount: 4161`. Prvý plný crawl
-je teda ~4200 requestov; pri `SCRAPE_DELAY_MS=1500` to je zhruba 1,7 hodiny.
+Prečo päť okresov a nie jedna cesta — dve pasce, na ktoré sme narazili:
+
+1. `/vysledky/bratislavsky-kraj/bratislava/predaj/byty` sa **presmerúva na celý
+   kraj** (`/vysledky/byty/bratislavsky-kraj/predaj`, 4150 inzerátov). Sťahovali
+   sme teda aj Malacky a Jakubov, aby ich `isInBratislavaArea` vzápätí zahodil.
+   Mesto samotné má 3428 bytov na `/vysledky/byty/bratislava/predaj`.
+2. **Stránkovanie má strop okolo strany 71.** Ďalšie strany vracajú 404, takže
+   cez jednu vetvu by sa dala vyzbierať sotva polovica z 3428 inzerátov.
+
+Rozdelenie na okresy rieši oboje — najväčší (Bratislava II) má 1015 bytov,
+teda ~49 strán, čo je bezpečne pod stropom:
+
+| Okres | Bytov | Strán |
+|---|---|---|
+| Bratislava I | 826 | ~40 |
+| Bratislava II | 1015 | ~49 |
+| Bratislava III | 506 | ~25 |
+| Bratislava IV | 594 | ~29 |
+| Bratislava V | 490 | ~24 |
+
+**Objem:** ~3430 detailov; pri `SCRAPE_DELAY_MS=1500` zhruba 1,5 hodiny.
 Ďalšie behy sú inkrementálne.
 
 **Čo sa zahadzuje:** inzeráty bez súradníc, neaktívne (`isActive: false`)

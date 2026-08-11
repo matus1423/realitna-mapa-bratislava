@@ -11,11 +11,25 @@ import type { ListPageResult, Source } from './source.js';
 const ORIGIN = 'https://www.nehnutelnosti.sk';
 
 /**
- * Byty na predaj v Bratislave. robots.txt zakazuje `/api/`
- * a zoradené varianty (`?order=...`), preto ideme cez neutrálne
- * `/vysledky/...` stránky a stránkovanie `?page=N`.
+ * Byty na predaj v Bratislave. robots.txt zakazuje `/api/` a zoradené
+ * varianty (`?order=...`), preto ideme cez neutrálne `/vysledky/...`
+ * stránky a stránkovanie `?page=N`.
+ *
+ * Delíme to na päť okresov z dvoch dôvodov. Po prvé, `.../bratislava/...`
+ * vracia 3428 bytov, ale stránkovanie končí niekde okolo strany 71 —
+ * cez jednu vetvu by sme sa k polovici inzerátov vôbec nedostali.
+ * Po druhé, pôvodná cesta `/bratislavsky-kraj/bratislava/` sa presmerúvala
+ * na celý kraj (4150 inzerátov vrátane Malaciek a Jakubova), čo sme potom
+ * zbytočne sťahovali a zahadzovali. Najväčší okres má ~49 strán, čiže
+ * všetky sa zmestia pod strop.
  */
-const LIST_PATHS = ['/vysledky/bratislavsky-kraj/bratislava/predaj/byty'];
+const LIST_PATHS = [
+  '/vysledky/byty/bratislava-i/predaj',
+  '/vysledky/byty/bratislava-ii/predaj',
+  '/vysledky/byty/bratislava-iii/predaj',
+  '/vysledky/byty/bratislava-iv/predaj',
+  '/vysledky/byty/bratislava-v/predaj',
+];
 
 /**
  * Stránka je Next.js App Router — celý objekt inzerátu je v RSC payloade

@@ -42,6 +42,8 @@ async function collectDetailUrls(source: Source, limit: number, maxPages: number
   for (const [categoryIndex, category] of source.categories.entries()) {
     console.log(`\n  kategória "${category}"`);
 
+    let consecutiveErrors = 0;
+
     for (let page = 1; page <= maxPages && urls.length < limit; page++) {
       const listUrl = source.listUrl(categoryIndex, page);
       process.stdout.write(`    strana ${page}: `);
@@ -49,8 +51,15 @@ async function collectDetailUrls(source: Source, limit: number, maxPages: number
       let result;
       try {
         result = source.parseListPage(await fetchHtml(listUrl), listUrl);
+        consecutiveErrors = 0;
       } catch (err) {
         console.log(`chyba (${(err as Error).message})`);
+        // portály zastropujú hĺbku stránkovania a ďalej vracajú 404;
+        // nemá zmysel búchať na zavreté dvere ďalších tristo strán
+        if (++consecutiveErrors >= 3) {
+          console.log('    tri chyby po sebe — kategóriu končím');
+          break;
+        }
         continue;
       }
 
