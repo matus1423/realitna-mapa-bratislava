@@ -26,7 +26,9 @@ export const zoznamrealitSource: Source = {
 
   parseListPage(html: string): ListPageResult {
     const urls = new Set<string>();
-    const re = /href="(\/[a-z0-9-]+-\d{5,})"/g;
+    // pozor na /pdf-<slug>-<id> — to je export inzerátu do PDF, ktorý
+    // robots.txt zakazuje (`Disallow: /pdf*`), nie stránka inzerátu
+    const re = /href="(\/(?!pdf-)[a-z0-9-]+-\d{5,})"/g;
     let match: RegExpExecArray | null;
 
     while ((match = re.exec(html)) !== null) {

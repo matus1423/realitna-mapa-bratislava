@@ -1,4 +1,4 @@
-import { USER_AGENT } from './http.js';
+import { USER_AGENT } from './ua.js';
 
 interface RobotsRules {
   disallow: string[];

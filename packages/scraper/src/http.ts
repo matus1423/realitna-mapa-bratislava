@@ -3,13 +3,13 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { repoRoot } from '@rmb/db';
+import { isAllowed, loadRobots } from './robots.js';
+import { USER_AGENT } from './ua.js';
 
 const CACHE_DIR = resolve(repoRoot, 'data/cache');
 const DELAY_MS = Number(process.env.SCRAPE_DELAY_MS ?? 1500);
 const USE_CACHE = process.env.SCRAPE_USE_CACHE !== '0';
 
-const USER_AGENT =
-  'realitna-mapa-bratislava/0.1 (osobný prototyp; kontakt: matus.mader00@gmail.com)';
 
 let lastRequestAt = 0;
 let minDelayMs = 0;
@@ -50,6 +50,14 @@ export interface FetchOptions {
  * stránka dookola — portál o tom nemá vedieť.
  */
 export async function fetchHtml(url: string, opts: FetchOptions = {}): Promise<string> {
+  // Kontrola robots.txt patrí sem, k jedinému miestu, ktoré chodí na sieť.
+  // Keď visela len na zoznamových URL, prešli nám cez ňu zakázané cesty,
+  // ktoré sa objavili až v odkazoch na stránke.
+  const rules = await loadRobots(new URL(url).origin);
+  if (!isAllowed(rules, url)) {
+    throw new Error(`robots.txt zakazuje ${url}`);
+  }
+
   const path = cachePath(url);
 
   if (USE_CACHE && !opts.noCache && existsSync(path)) {
@@ -78,4 +86,5 @@ export async function fetchHtml(url: string, opts: FetchOptions = {}): Promise<s
   return html;
 }
 
-export { USER_AGENT, DELAY_MS };
+export { DELAY_MS };
+export { USER_AGENT } from './ua.js';
