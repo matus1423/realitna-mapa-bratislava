@@ -104,10 +104,24 @@ nevydávajúcich sa za prehliadač. Na náš User-Agent vráti 246 B:
 The requested URL was rejected. Please consult with your administrator.
 ```
 
-Overené trikrát po sebe, nejde o výpadok. robots.txt tie cesty povoľuje, ale
-blokácia je jasnejší signál. Stratíme tým minimum — inzeráty aj ID zdieľa
-s nehnutelnosti.sk, takže by ich deduplikácia aj tak zlúčila.
-Spustiť sa dá cez `--source reality`.
+Overené trikrát po sebe, nejde o výpadok. Blokovaný je aj `/sitemap.xml`, teda
+súbor určený priamo pre crawlerov — WAF nerozlišuje slušného robota od
+neslušného, chce proste requesty tvarom z prehliadača. robots.txt tie cesty
+povoľuje, ale blokácia je jasnejší signál.
+
+**Koľko tým strácame — zmerané, nie odhadnuté.** Jednorazovo sme prešli
+strany 1, 42, 59, 88 a 135 a každé nájdené ID skúsili na nehnutelnosti.sk:
+
+| Inzerátov vo vzorke | Existuje aj na nehnutelnosti.sk | Len na reality.sk |
+|---|---|---|
+| 76 | 76 | **0** |
+
+Vzorka je rozložená po celej hĺbke sortimentu, nielen po prvej strane.
+Stránkovanie navyše končí okolo strany 135, takže reality.sk má bytov menej
+než nehnutelnosti.sk (3428). Všetko nasvedčuje tomu, že je to podmnožina —
+deduplikácia by ho zlúčila prakticky celý.
+
+Spustiť sa dá cez `--source reality`, ale s naším User-Agentom neprejde ani jeden request.
 
 ## topreality.sk
 
