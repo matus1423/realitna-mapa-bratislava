@@ -10,6 +10,12 @@ export interface ListPageResult {
   detailUrls: string[];
   /** Celkový počet výsledkov, ak ho portál uvádza. */
   totalCount: number | null;
+  /**
+   * Koľko inzerátov stránka vôbec obsahovala, teda pred filtrovaním.
+   * Zdroje, ktoré filtrujú lokalitu až z textu (Bazoš), majú bežne stránky
+   * bez jediného zhodného inzerátu — driver to nesmie čítať ako koniec zoznamu.
+   */
+  itemsOnPage?: number;
 }
 
 /**

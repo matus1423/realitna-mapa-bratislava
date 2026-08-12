@@ -23,6 +23,7 @@ export const bazosSource: Source = {
 
   parseListPage(html: string): ListPageResult {
     const urls: string[] = [];
+    const allItems = new Set(html.match(/\/inzerat\/\d+\//g) ?? []);
     // rozsekáme stránku na bloky jednotlivých inzerátov a filtrujeme podľa textu
     const chunks = html.split(/(?=\/inzerat\/\d+\/)/);
 
@@ -34,7 +35,7 @@ export const bazosSource: Source = {
       urls.push(`${ORIGIN}/inzerat/${match[1]}/${match[2]}.php`);
     }
 
-    return { detailUrls: [...new Set(urls)], totalCount: null };
+    return { detailUrls: [...new Set(urls)], totalCount: null, itemsOnPage: allItems.size };
   },
 
   parseDetail(html: string, url: string): Listing | null {

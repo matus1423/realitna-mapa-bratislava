@@ -74,8 +74,11 @@ async function collectDetailUrls(source: Source, limit: number, maxPages: number
           (result.totalCount ? ` (portál hlási ${result.totalCount} spolu)` : ''),
       );
 
-      // prázdna strana znamená koniec kategórie, nie koniec celého zdroja
-      if (fresh.length === 0) break;
+      // Prázdna strana znamená koniec kategórie, nie koniec celého zdroja.
+      // Pri zdrojoch, ktoré filtrujú lokalitu až z textu, ale nula zhôd
+      // neznamená nula inzerátov — tam sa pýtame na `itemsOnPage`.
+      const pageWasEmpty = result.itemsOnPage != null ? result.itemsOnPage === 0 : fresh.length === 0;
+      if (pageWasEmpty) break;
     }
 
     if (urls.length >= limit) break;
