@@ -469,6 +469,26 @@ body {
   font-weight: 600;
 }
 
+.card-warning {
+  margin-top: 10px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.card-sources {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.card-sources a {
+  color: var(--muted);
+}
+
 .card-link:hover {
   text-decoration: underline;
 }

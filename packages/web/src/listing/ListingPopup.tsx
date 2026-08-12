@@ -145,12 +145,15 @@ export function ListingPopup({ ids, onClose }: Props) {
 
         {listing.alsoOn && listing.alsoOn.length > 0 && (
           <div className="card-sources">
-            Ten istý byt aj na:{' '}
+            Ten istý byt inzerujú aj:{' '}
             {listing.alsoOn.map((other, i) => (
               <span key={other.sourceUrl}>
                 {i > 0 && ', '}
                 <a href={other.sourceUrl} target="_blank" rel="noreferrer noopener">
                   {sourceLabel(other.source)}
+                  {/* duplicita v rámci jedného portálu je bežná — ten istý byt
+                      tam visí od dvoch kancelárií, treba to odlíšiť od prekryvu portálov */}
+                  {other.source === listing.source ? ' (druhý inzerát)' : ''}
                 </a>
               </span>
             ))}

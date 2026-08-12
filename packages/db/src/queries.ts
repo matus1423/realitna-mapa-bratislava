@@ -275,6 +275,25 @@ export function getListingsByIds(ids: string[]): Listing[] {
   return rows.map(rowToListing);
 }
 
+/**
+ * Pre kanonické inzeráty vráti, na ktorých ďalších portáloch tá istá
+ * nehnuteľnosť visí. Bez toho by deduplikácia bola neviditeľná — používateľ
+ * by nevedel, že sme mu tri rovnaké ponuky zlúčili do jednej.
+ */
+export function getDuplicatesFor(
+  ids: string[],
+): { canonicalId: string; source: string; sourceUrl: string }[] {
+  if (ids.length === 0) return [];
+  const db = getDb();
+  return db
+    .prepare<string[], { canonicalId: string; source: string; sourceUrl: string }>(
+      `SELECT duplicate_of AS canonicalId, source, source_url AS sourceUrl
+         FROM listings
+        WHERE duplicate_of IN (${ids.map(() => '?').join(',')}) AND is_active = 1`,
+    )
+    .all(...ids);
+}
+
 export function getPriceHistory(listingId: string): { price: number; seenAt: string }[] {
   const db = getDb();
   return db
