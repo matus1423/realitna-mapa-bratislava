@@ -26,11 +26,13 @@ function roomsFromCategory(category: string | null): number | null {
  */
 export const toprealitySource: Source = {
   name: 'topreality',
-  categories: ['byty Bratislava'],
+  categories: ['byty na predaj, Bratislava'],
   minDelayMs: 6000,
 
   listUrl(_categoryIndex: number, page: number): string {
-    const base = `${ORIGIN}/bratislava/byty/`;
+    // `/bratislava/byty/` mieša predaj aj prenájom — polovicu requestov by sme
+    // minuli na inzeráty, ktoré aj tak zahodíme. `/predam` je len predaj.
+    const base = `${ORIGIN}/bratislava/byty/predam`;
     return page === 1 ? base : `${base}${page}.html`;
   },
 
@@ -70,7 +72,10 @@ export const toprealitySource: Source = {
 
     // plocha je v texte rozbitá na "51", "m", "2" — preto tri riadky dopredu
     const areaM2 = parseNumber(labelValue(lines, 'Úžitková plocha', 1));
-    const price = parseNumber(labelValue(lines, 'Cena', 1));
+    // Pozor na riadky typu "1 000 € 100 €" (nájom + energie): parseNumber
+    // zahadzuje medzery, takže by z nich spravil 1000100. Berieme prvé číslo.
+    const priceRaw = labelValue(lines, 'Cena', 1);
+    const price = parseNumber(/^[\d\s ]+/.exec(priceRaw ?? '')?.[0] ?? priceRaw);
     const floorRaw = labelValue(lines, 'Podlažie', 1);
     const now = new Date().toISOString();
 
