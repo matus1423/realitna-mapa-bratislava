@@ -147,6 +147,9 @@ function buildWhere(opts: FindOptions): { sql: string; params: unknown[] } {
     'l.is_active = 1',
     // duplicity z iných portálov na mapu nepatria
     'l.duplicate_of IS NULL',
+    // cena pod 1000 € pri byte je vždy chyba zdroja alebo "dohodou" zapísané
+    // ako nula; na mape by z toho bola pilulka "€0"
+    "(l.price IS NULL OR l.price >= 1000)",
     'l.lat BETWEEN ? AND ?',
     'l.lng BETWEEN ? AND ?',
   ];

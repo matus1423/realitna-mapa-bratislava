@@ -72,6 +72,10 @@ export const toprealitySource: Source = {
     const category = labelValue(lines, 'Kategória', 3);
     if (category && !/byt|garsónka|garsonka|mezonet|apartmán/i.test(category)) return null;
 
+    // `/predam` filtruje len prvú stranu — stránkovanie sa vracia k zmiešanému
+    // zoznamu, takže prenájmy musíme odchytiť ešte raz tu.
+    if (/prenáj|prenaj/i.test(category ?? '')) return null;
+
     // plocha je v texte rozbitá na "51", "m", "2" — preto tri riadky dopredu
     const areaM2 = parseNumber(labelValue(lines, 'Úžitková plocha', 1));
     // Pozor na riadky typu "1 000 € 100 €" (nájom + energie): parseNumber
@@ -93,7 +97,7 @@ export const toprealitySource: Source = {
       sourceId: id,
       sourceUrl: url,
 
-      dealType: /prenáj|prenaj/i.test(category ?? '') ? 'prenajom' : 'predaj',
+      dealType: 'predaj',
       propertyType: 'byt',
 
       price,
