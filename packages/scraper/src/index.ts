@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { countListings, deactivateMissing, upsertListing } from '@rmb/db';
+import { countBySource, countListings, deactivateMissing, upsertListing } from '@rmb/db';
 import { dedupe } from './dedupe.js';
 import { fetchHtml, setMinDelay } from './http.js';
 import { assertCrawlable } from './robots.js';
@@ -143,7 +143,21 @@ async function scrapeSource(source: Source, limit: number, maxPages: number): Pr
 
   // Zhasnúť nevidené sa dá len vtedy, keď sme zdroj naozaj prešli celý.
   // Po behu s malým --limit by to zhaslo všetko, na čo sa nedostalo.
-  const wasFullRun = detailUrls.length < limit && stats.failed < detailUrls.length * 0.1;
+  //
+  // Druhá poistka je proti pokazenému zberu: keď sa rozbije stránkovanie,
+  // beh vyzerá ako úspešný, len nazbiera zlomok odkazov — a bez tejto
+  // kontroly by zhasol celý zdroj. Raz sa to už stalo, 795 platných bytov.
+  const known = countBySource().find((row) => row.source === source.name)?.total ?? 0;
+  const collectedEnough = known === 0 || detailUrls.length >= known * 0.5;
+  const wasFullRun =
+    detailUrls.length < limit && stats.failed < detailUrls.length * 0.1 && collectedEnough;
+
+  if (!collectedEnough) {
+    console.log(
+      `  POZOR: nazbieraných ${detailUrls.length} odkazov, ale v databáze je ${known} ` +
+        'aktívnych — vyzerá to na pokazený zber, zmiznuté inzeráty nezhasínam',
+    );
+  }
   if (wasFullRun) {
     const gone = deactivateMissing(source.name, startedAt);
     if (gone > 0) console.log(`  ${gone} inzerátov už na portáli nie je — označené za neaktívne`);

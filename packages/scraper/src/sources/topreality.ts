@@ -32,8 +32,10 @@ export const toprealitySource: Source = {
   listUrl(_categoryIndex: number, page: number): string {
     // `/bratislava/byty/` mieša predaj aj prenájom — polovicu requestov by sme
     // minuli na inzeráty, ktoré aj tak zahodíme. `/predam` je len predaj.
+    // Pozor na lomku: `/predam/2.html` je druhá strana, kým `/predam2.html`
+    // vráti znova prvú. Portál pritom odkazuje na oba tvary.
     const base = `${ORIGIN}/bratislava/byty/predam`;
-    return page === 1 ? base : `${base}${page}.html`;
+    return page === 1 ? base : `${base}/${page}.html`;
   },
 
   parseListPage(html: string): ListPageResult {
