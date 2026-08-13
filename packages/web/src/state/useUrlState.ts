@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DealType, PropertyType } from '@rmb/shared';
 
+/**
+ * Sťahujeme výhradne byty na predaj, takže druh nehnuteľnosti ani typ
+ * transakcie nie sú voľba používateľa — sú konštanty celej aplikácie.
+ */
 export interface MapState {
   lat: number;
   lon: number;

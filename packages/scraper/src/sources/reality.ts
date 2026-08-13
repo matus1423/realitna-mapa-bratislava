@@ -44,7 +44,7 @@ export const realitySource: Source = {
       urls.add(`${ORIGIN}/byty/${match[1]}/${match[2]}/`);
     }
 
-    return { detailUrls: [...urls], totalCount: null };
+    return { detailUrls: [...urls], totalCount: null, itemsOnPage: urls.size };
   },
 
   parseDetail(html: string, url: string): Listing | null {

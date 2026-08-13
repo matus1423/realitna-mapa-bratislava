@@ -54,6 +54,7 @@ export const toprealitySource: Source = {
     return {
       detailUrls: [...urls],
       totalCount: totalMatch?.[1] ? parseNumber(totalMatch[1]) : null,
+      itemsOnPage: urls.size,
     };
   },
 

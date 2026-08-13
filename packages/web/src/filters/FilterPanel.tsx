@@ -1,4 +1,3 @@
-import type { DealType } from '@rmb/shared';
 import type { MapState } from '../state/useUrlState.js';
 
 interface Props {
@@ -22,20 +21,6 @@ function toggle<T>(list: T[], value: T): T[] {
 export function FilterPanel({ state, onChange, visibleCount }: Props) {
   return (
     <aside className="filter-panel">
-      <div className="panel-section">
-        <div className="segmented">
-          {(['predaj', 'prenajom'] as DealType[]).map((deal) => (
-            <button
-              key={deal}
-              className={state.dealType === deal ? 'is-active' : ''}
-              onClick={() => onChange({ dealType: deal })}
-            >
-              {deal === 'predaj' ? 'Predaj' : 'Prenájom'}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="panel-section">
         <label className="panel-label">Dispozícia</label>
         <div className="chip-grid rooms">
@@ -79,7 +64,6 @@ export function FilterPanel({ state, onChange, visibleCount }: Props) {
           className="reset"
           onClick={() =>
             onChange({
-              dealType: 'predaj',
               rooms: [],
               priceMin: undefined,
               priceMax: undefined,

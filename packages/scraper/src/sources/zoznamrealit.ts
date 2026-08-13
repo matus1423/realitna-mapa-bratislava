@@ -35,7 +35,7 @@ export const zoznamrealitSource: Source = {
       urls.add(`${ORIGIN}${match[1]}`);
     }
 
-    return { detailUrls: [...urls], totalCount: null };
+    return { detailUrls: [...urls], totalCount: null, itemsOnPage: urls.size };
   },
 
   coordsUrl(_html: string, url: string): string | null {

@@ -163,6 +163,10 @@ export const nehnutelnostiSource: Source = {
     return {
       detailUrls: [...urls],
       totalCount: totalMatch?.[1] ? Number(totalMatch[1]) : null,
+      // Portál opakuje topované inzeráty naprieč stranami, takže strana bez
+      // jediného nového odkazu neznamená koniec zoznamu — bez tohto sa zber
+      // zastavoval po ~75 % každého okresu.
+      itemsOnPage: urls.size,
     };
   },
 
