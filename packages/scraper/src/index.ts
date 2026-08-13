@@ -2,6 +2,7 @@ import { parseArgs } from 'node:util';
 import { countBySource, countListings, deactivateMissing, upsertListing } from '@rmb/db';
 import { dedupe } from './dedupe.js';
 import { computePriceIndex } from './price-index.js';
+import { computeRentalYield } from './rental-yield.js';
 import { fetchHtml, setMinDelay } from './http.js';
 import { assertCrawlable } from './robots.js';
 import { bazosSource } from './sources/bazos.js';
@@ -218,6 +219,12 @@ async function main(): Promise<void> {
   const index = computePriceIndex();
   console.log(
     `Index cien: dopočítaný pre ${index.computed} bytov, ${index.skipped} bez dostatku susedov`,
+  );
+
+  // až po indexe cien — obe stoja na tom istom očistenom stave
+  const yields = computeRentalYield();
+  console.log(
+    `Výnos: dopočítaný pre ${yields.computed} bytov, ${yields.skipped} bez prenájmov v okolí`,
   );
 
   const counts = countListings();

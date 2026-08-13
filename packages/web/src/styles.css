@@ -502,6 +502,40 @@ body {
   width: 100%;
 }
 
+.card-yield {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.cy-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.cy-row span {
+  color: var(--muted);
+}
+
+.cy-row strong.tone-good {
+  color: #047857;
+}
+
+.cy-row strong.tone-bad {
+  color: #b91c1c;
+}
+
+.cy-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
 .price-history {
   margin-top: 12px;
   padding-top: 10px;

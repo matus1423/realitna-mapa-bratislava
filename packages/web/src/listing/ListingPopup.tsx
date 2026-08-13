@@ -1,6 +1,15 @@
 import type { Listing } from '@rmb/shared';
 import { useEffect, useState } from 'react';
-import { daysLabel, daysOnMarket, formatArea, fullPrice, priceRatioLabel, roomsLabel } from '../format.js';
+import {
+  daysLabel,
+  daysOnMarket,
+  formatArea,
+  fullPrice,
+  priceRatioLabel,
+  roomsLabel,
+  yieldLabel,
+  yieldTone,
+} from '../format.js';
 import { PriceHistory } from './PriceHistory.js';
 
 /** Inzerát doplnený o portály, na ktorých ten istý byt visí tiež. */
@@ -164,6 +173,25 @@ export function ListingPopup({ ids, onClose, isSaved, onToggleSave }: Props) {
             {!onMarket.exact && (
               <span className="card-sub-dim"> — aspoň, odkedy o ňom vieme</span>
             )}
+          </div>
+        )}
+
+        {listing.grossYield != null && listing.estimatedRent != null && (
+          <div className="card-yield">
+            <div className="cy-row">
+              <span>Odhadovaný nájom</span>
+              <strong>{listing.estimatedRent.toLocaleString('sk-SK')} € / mes.</strong>
+            </div>
+            <div className="cy-row">
+              <span>Hrubý výnos</span>
+              <strong className={`tone-${yieldTone(listing.grossYield)}`}>
+                {yieldLabel(listing.grossYield)}
+              </strong>
+            </div>
+            <p className="cy-note">
+              Nájom je odhad z prenájmov v okolí prepočítaný na plochu bytu. Výnos je hrubý —
+              nezahŕňa daň, správu, opravy ani neobsadenosť.
+            </p>
           </div>
         )}
 

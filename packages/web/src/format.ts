@@ -76,3 +76,18 @@ export function daysLabel(days: number): string {
   const months = Math.round(days / 30);
   return months === 1 ? 'mesiac' : months < 5 ? `${months} mesiace` : `${months} mesiacov`;
 }
+
+/** 0,042 → "4,2 %". */
+export function yieldLabel(grossYield: number): string {
+  return `${(grossYield * 100).toFixed(1).replace('.', ',')} %`;
+}
+
+/**
+ * Farebné pásmo výnosu. Bratislavský priemer sa dlhodobo drží okolo 4 %,
+ * takže hranice sú postavené naň — nie na nejakú obecnú "dobrú" mieru.
+ */
+export function yieldTone(grossYield: number): 'good' | 'bad' | 'neutral' {
+  if (grossYield >= 0.05) return 'good';
+  if (grossYield < 0.035) return 'bad';
+  return 'neutral';
+}

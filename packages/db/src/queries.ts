@@ -42,6 +42,8 @@ interface ListingRow {
   scraped_at: string;
   area_price_per_m2: number | null;
   price_ratio: number | null;
+  estimated_rent: number | null;
+  gross_yield: number | null;
 }
 
 function rowToListing(row: ListingRow): Listing {
@@ -79,6 +81,8 @@ function rowToListing(row: ListingRow): Listing {
     scrapedAt: row.scraped_at,
     areaPricePerM2: row.area_price_per_m2,
     priceRatio: row.price_ratio,
+    estimatedRent: row.estimated_rent,
+    grossYield: row.gross_yield,
   };
 }
 

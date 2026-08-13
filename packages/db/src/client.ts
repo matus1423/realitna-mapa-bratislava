@@ -45,6 +45,10 @@ function migrate(db: Database.Database): void {
     db.exec('ALTER TABLE listings ADD COLUMN area_price_per_m2 REAL');
     db.exec('ALTER TABLE listings ADD COLUMN price_ratio REAL');
   }
+  if (!columns.has('estimated_rent')) {
+    db.exec('ALTER TABLE listings ADD COLUMN estimated_rent INTEGER');
+    db.exec('ALTER TABLE listings ADD COLUMN gross_yield REAL');
+  }
 
   // index až tu, nie v schema.sql — tam by na staršej databáze bežal skôr,
   // než by stĺpec vôbec existoval

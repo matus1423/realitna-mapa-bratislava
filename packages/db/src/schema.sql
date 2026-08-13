@@ -50,7 +50,12 @@ CREATE TABLE IF NOT EXISTS listings (
   -- Prepočítava sa po každom crawle, nie pri dotaze — na tisíckach bodov by
   -- to inak mapu položilo.
   area_price_per_m2 REAL,
-  price_ratio       REAL
+  price_ratio       REAL,
+
+  -- odhad mesačného nájmu z okolitých inzerátov na prenájom a hrubý výnos
+  -- (ročný nájom / cena). Hrubý = bez dane, správy, opráv a neobsadenosti.
+  estimated_rent    INTEGER,
+  gross_yield       REAL
 );
 
 -- Hlavný dotaz mapy je "daj inzeráty vo výreze". SQLite nemá priestorový index,

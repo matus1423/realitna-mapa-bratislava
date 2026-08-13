@@ -83,6 +83,10 @@ export interface Listing {
   areaPricePerM2: number | null;
   /** Pomer ceny bytu k okoliu; 0,85 = o 15 % lacnejší. */
   priceRatio: number | null;
+  /** Odhadovaný mesačný nájom podľa okolitých prenájmov. */
+  estimatedRent: number | null;
+  /** Hrubý ročný výnos; 0,042 = 4,2 %. Bez dane, správy a neobsadenosti. */
+  grossYield: number | null;
 }
 
 /**
@@ -110,7 +114,10 @@ export interface ListingMarker {
  * To, čo vie dať scraper. `areaPricePerM2` a `priceRatio` sa dopočítavajú
  * až po crawle z celej databázy, takže ich jednotlivý parser nemá odkiaľ vedieť.
  */
-export type ScrapedListing = Omit<Listing, 'areaPricePerM2' | 'priceRatio'>;
+export type ScrapedListing = Omit<
+  Listing,
+  'areaPricePerM2' | 'priceRatio' | 'estimatedRent' | 'grossYield'
+>;
 
 export interface ListingFilters {
   dealType?: DealType;
