@@ -161,7 +161,9 @@ export function ListingPopup({ ids, onClose, isSaved, onToggleSave }: Props) {
         {onMarket && (
           <div className="card-sub">
             V ponuke {daysLabel(onMarket.days)}
-            {!onMarket.exact && <span className="card-sub-dim"> (odkedy o ňom vieme)</span>}
+            {!onMarket.exact && (
+              <span className="card-sub-dim"> — aspoň, odkedy o ňom vieme</span>
+            )}
           </div>
         )}
 

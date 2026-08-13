@@ -53,9 +53,10 @@ export function priceRatioLabel(ratio: number | null): { text: string; tone: 'go
 
 /**
  * Ako dlho je byt v ponuke. Uprednostňujeme dátum zverejnenia z portálu;
- * ten má ale len nehnutelnosti.sk, pri ostatných vieme nanajvýš to, kedy
- * sme ho prvýkrát videli my — a to je pri prvom crawle dnešok, takže
- * takú hodnotu radšej nezobrazujeme vôbec, než by mala klamať.
+ * ten má ale len nehnutelnosti.sk. Pri ostatných počítame od prvého videnia,
+ * čo je spočiatku dnešok — preto sa taká hodnota označuje ako približná.
+ * Postupnými crawlmi sa to samo spresní: čo pribudne neskôr, už bude mať
+ * poctivý dátum prvého výskytu.
  */
 export function daysOnMarket(
   publishedAt: string | null,
@@ -64,7 +65,6 @@ export function daysOnMarket(
   const source = publishedAt ?? firstSeenAt;
   const days = Math.floor((Date.now() - Date.parse(source)) / 86_400_000);
   if (!Number.isFinite(days) || days < 0) return null;
-  if (publishedAt == null && days < 7) return null;
   return { days, exact: publishedAt != null };
 }
 
