@@ -8,6 +8,7 @@ interface Props {
   savedCount: number;
   onlySaved: boolean;
   onOnlySavedChange: (value: boolean) => void;
+  hasPolygon: boolean;
 }
 
 const ROOM_OPTIONS = [
@@ -29,6 +30,7 @@ export function FilterPanel({
   savedCount,
   onlySaved,
   onOnlySavedChange,
+  hasPolygon,
 }: Props) {
   return (
     <aside className="filter-panel">
@@ -95,13 +97,16 @@ export function FilterPanel({
       )}
 
       <div className="panel-footer">
-        <span className="result-count">{visibleCount.toLocaleString('sk-SK')} vo výreze</span>
+        <span className="result-count">
+          {visibleCount.toLocaleString('sk-SK')} {hasPolygon ? 'v oblasti' : 'vo výreze'}
+        </span>
         <button
           className="reset"
           onClick={() =>
             onChange({
               dealType: 'predaj',
               rooms: [],
+              polygon: [],
               priceMin: undefined,
               priceMax: undefined,
             })

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DealType, PropertyType } from '@rmb/shared';
+import { decodePolygon, encodePolygon, type Point } from '../map/polygon.js';
 
 /**
  * Sťahujeme výhradne byty na predaj, takže druh nehnuteľnosti ani typ
@@ -14,6 +15,8 @@ export interface MapState {
   priceMin?: number;
   priceMax?: number;
   rooms: number[];
+  /** Vyznačená oblasť; prázdne pole = bez obmedzenia. */
+  polygon: Point[];
 }
 
 const DEFAULTS: MapState = {
@@ -23,6 +26,7 @@ const DEFAULTS: MapState = {
   dealType: 'predaj',
   propertyTypes: ['byt'],
   rooms: [],
+  polygon: [],
 };
 
 function readUrl(): MapState {
@@ -47,6 +51,7 @@ function readUrl(): MapState {
     propertyTypes: propertyTypes?.length ? propertyTypes : DEFAULTS.propertyTypes,
     priceMin: num('price_min'),
     priceMax: num('price_max'),
+    polygon: decodePolygon(p.get('poly')),
     rooms:
       p
         .get('rooms')
@@ -66,6 +71,7 @@ function writeUrl(state: MapState): void {
   if (state.priceMin != null) p.set('price_min', String(state.priceMin));
   if (state.priceMax != null) p.set('price_max', String(state.priceMax));
   if (state.rooms.length) p.set('rooms', state.rooms.join(','));
+  if (state.polygon.length >= 3) p.set('poly', encodePolygon(state.polygon));
 
   // replaceState, nie pushState — inak by každý posun mapy zaplnil históriu
   window.history.replaceState(null, '', `?${p.toString()}`);

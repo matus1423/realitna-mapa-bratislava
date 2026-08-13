@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { FilterPanel } from './filters/FilterPanel.js';
 import { ListingPopup } from './listing/ListingPopup.js';
 import { MapView } from './map/MapView.js';
+import type { Point } from './map/polygon.js';
 import { useSaved } from './state/useSaved.js';
 import { useUrlState } from './state/useUrlState.js';
 
@@ -11,6 +12,15 @@ export function App() {
   const [visibleCount, setVisibleCount] = useState(0);
   const { saved, isSaved, toggle } = useSaved();
   const [onlySaved, setOnlySaved] = useState(false);
+  const [drawing, setDrawing] = useState(false);
+
+  const handlePolygonChange = useCallback(
+    (polygon: Point[]) => {
+      update({ polygon });
+      setDrawing(false);
+    },
+    [update],
+  );
 
   const handleViewChange = useCallback(
     (view: { lat: number; lon: number; zoom: number }) => update(view),
@@ -32,6 +42,7 @@ export function App() {
           savedCount={saved.size}
           onlySaved={onlySaved}
           onOnlySavedChange={setOnlySaved}
+          hasPolygon={state.polygon.length >= 3}
         />
 
         <main className="map-area">
@@ -43,7 +54,24 @@ export function App() {
             selectedIds={selectedIds}
             savedIds={saved}
             onlySaved={onlySaved}
+            drawing={drawing}
+            onPolygonChange={handlePolygonChange}
           />
+
+          <div className="map-tools">
+            {state.polygon.length >= 3 && !drawing ? (
+              <button className="map-tool" onClick={() => update({ polygon: [] })}>
+                ✕ Zrušiť oblasť
+              </button>
+            ) : (
+              <button
+                className={`map-tool${drawing ? ' is-active' : ''}`}
+                onClick={() => setDrawing(!drawing)}
+              >
+                {drawing ? 'Dvojklikom uzavrieť' : '✎ Vyznačiť oblasť'}
+              </button>
+            )}
+          </div>
           {selectedIds.length > 0 && (
             <ListingPopup
               ids={selectedIds}

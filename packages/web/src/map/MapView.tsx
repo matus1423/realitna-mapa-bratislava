@@ -6,6 +6,7 @@ import Supercluster from 'supercluster';
 import type { MapState } from '../state/useUrlState.js';
 import { groupByCoordinate, type MarkerGroup } from './grouping.js';
 import { createClusterIcon, createPriceIcon } from './icons.js';
+import { isInside, type Point } from './polygon.js';
 
 interface Props {
   state: MapState;
@@ -15,6 +16,8 @@ interface Props {
   selectedIds: string[];
   savedIds: Set<string>;
   onlySaved: boolean;
+  drawing: boolean;
+  onPolygonChange: (polygon: Point[]) => void;
 }
 
 type ClusterProps = { cluster: true; cluster_id: number; point_count: number };
@@ -46,10 +49,16 @@ export function MapView({
   selectedIds,
   savedIds,
   onlySaved,
+  drawing,
+  onPolygonChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const drawLayerRef = useRef<L.LayerGroup | null>(null);
+  // rozkreslený tvar držíme v refe, nie v state — každý klik by inak
+  // pretvoril celú mapu vrátane markerov
+  const draftRef = useRef<Point[]>([]);
   const [markers, setMarkers] = useState<ListingMarker[]>([]);
   const [view, setView] = useState({ zoom: state.zoom, bounds: null as L.LatLngBounds | null });
 
@@ -72,6 +81,7 @@ export function MapView({
     L.control.zoom({ position: 'topright' }).addTo(map);
 
     layerRef.current = L.layerGroup().addTo(map);
+    drawLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
     const sync = (): void => {
@@ -129,14 +139,21 @@ export function MapView({
 
   // počet vo výreze hlásime až po filtri, nech sedí s tým, čo je vidieť
   useEffect(() => {
-    onCountChange(onlySaved ? markers.filter((m) => savedIds.has(m.id)).length : markers.length);
-  }, [markers, onlySaved, savedIds, onCountChange]);
+    let visible = onlySaved ? markers.filter((m) => savedIds.has(m.id)) : markers;
+    if (state.polygon.length >= 3) {
+      visible = visible.filter((m) => isInside([m.lat, m.lng], state.polygon));
+    }
+    onCountChange(visible.length);
+  }, [markers, onlySaved, savedIds, state.polygon, onCountChange]);
 
   // --- clustering ------------------------------------------------------------
   const index = useMemo(() => {
     // "len uložené" filtrujeme na klientovi — ID uložených sú v prehliadači
     // a posielať ich na server by znamenalo tlačiť tam osobný zoznam
-    const visible = onlySaved ? markers.filter((m) => savedIds.has(m.id)) : markers;
+    let visible = onlySaved ? markers.filter((m) => savedIds.has(m.id)) : markers;
+    if (state.polygon.length >= 3) {
+      visible = visible.filter((m) => isInside([m.lat, m.lng], state.polygon));
+    }
     const groups = groupByCoordinate(visible);
     const sc = new Supercluster<GroupProps, ClusterProps>({
       radius: 60,
@@ -152,7 +169,80 @@ export function MapView({
       })),
     );
     return sc;
-  }, [markers, onlySaved, savedIds]);
+  }, [markers, onlySaved, savedIds, state.polygon]);
+
+  // --- kreslenie oblasti ------------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    const drawLayer = drawLayerRef.current;
+    if (!map || !drawLayer) return;
+
+    const redraw = (): void => {
+      drawLayer.clearLayers();
+      const draft = draftRef.current;
+
+      if (draft.length > 0) {
+        L.polyline(draft, { color: '#2563eb', weight: 2, dashArray: '5 4' }).addTo(drawLayer);
+        for (const point of draft) {
+          L.circleMarker(point, {
+            radius: 4,
+            color: '#2563eb',
+            fillColor: '#fff',
+            fillOpacity: 1,
+          }).addTo(drawLayer);
+        }
+      }
+    };
+
+    if (!drawing) {
+      draftRef.current = [];
+      drawLayer.clearLayers();
+
+      // hotová oblasť sa kreslí aj mimo režimu kreslenia, nech používateľ
+      // vidí, čo vlastne filtruje
+      if (state.polygon.length >= 3) {
+        L.polygon(state.polygon, {
+          color: '#2563eb',
+          weight: 2,
+          fillOpacity: 0.06,
+        }).addTo(drawLayer);
+      }
+      return;
+    }
+
+    const onClick = (event: L.LeafletMouseEvent): void => {
+      draftRef.current = [...draftRef.current, [event.latlng.lat, event.latlng.lng]];
+      redraw();
+    };
+
+    // dvojklik oblasť uzavrie; Leaflet by inak ešte priblížil mapu
+    const onDblClick = (event: L.LeafletMouseEvent): void => {
+      L.DomEvent.stop(event);
+      if (draftRef.current.length >= 3) onPolygonChange(draftRef.current);
+      draftRef.current = [];
+    };
+
+    // Escape zahodí rozkreslený tvar — bez neho by sa používateľ z režimu
+    // kreslenia dostal len tak, že niečo dokreslí
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return;
+      draftRef.current = [];
+      onPolygonChange([]);
+    };
+
+    map.doubleClickZoom.disable();
+    map.on('click', onClick);
+    map.on('dblclick', onDblClick);
+    window.addEventListener('keydown', onKey);
+    redraw();
+
+    return () => {
+      map.off('click', onClick);
+      map.off('dblclick', onDblClick);
+      window.removeEventListener('keydown', onKey);
+      map.doubleClickZoom.enable();
+    };
+  }, [drawing, state.polygon, onPolygonChange]);
 
   // --- vykreslenie -----------------------------------------------------------
   useEffect(() => {
@@ -197,5 +287,5 @@ export function MapView({
     }
   }, [index, view, selectedIds, savedIds, onSelect]);
 
-  return <div ref={containerRef} className="map-container" />;
+  return <div ref={containerRef} className={`map-container${drawing ? ' is-drawing' : ''}`} />;
 }

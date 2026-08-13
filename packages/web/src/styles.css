@@ -313,6 +313,35 @@ body {
 }
 
 /* --- karta inzerátu --- */
+.map-container.is-drawing {
+  cursor: crosshair;
+}
+
+.map-tools {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 500;
+}
+
+.map-tool {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
+}
+
+.map-tool.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 .listing-card {
   position: absolute;
   top: 16px;
@@ -646,7 +675,36 @@ body {
     max-height: 45%;
   }
 
-  .listing-card {
+  .map-container.is-drawing {
+  cursor: crosshair;
+}
+
+.map-tools {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 500;
+}
+
+.map-tool {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
+}
+
+.map-tool.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.listing-card {
     width: auto;
     left: 16px;
   }
