@@ -32,17 +32,22 @@ function valueClass(ratio: number | null): string {
   return '';
 }
 
-export function createPriceIcon(group: MarkerGroup, isSelected: boolean): L.DivIcon {
+export function createPriceIcon(
+  group: MarkerGroup,
+  isSelected: boolean,
+  isSaved = false,
+): L.DivIcon {
   const diff = priceDiffLabel(group.priceDiff);
   const countBadge =
     group.count > 1 ? `<span class="pill-count">${BUILDING_SVG}${group.count}</span>` : '';
   const diffBadge = diff ? `<span class="pill-diff">${diff}</span>` : '';
+  const savedStar = isSaved ? '<span class="pill-star">★</span>' : '';
   const newDot = group.hasNew ? '<span class="pill-new" title="Nový inzerát"></span>' : '';
 
   const html =
-    `<div class="marker-pill${isSelected ? ' is-selected' : ''}${group.imprecise ? ' is-imprecise' : ''}${valueClass(group.priceRatio)}"` +
+    `<div class="marker-pill${isSelected ? ' is-selected' : ''}${group.imprecise ? ' is-imprecise' : ''}${valueClass(group.priceRatio)}${isSaved ? ' is-saved' : ''}"` +
     `${group.imprecise ? ' title="Poloha je len približná — portál uvádza iba PSČ"' : ''}>` +
-    `<div class="pill-body">${countBadge}${newDot}<span class="pill-price">${compactPrice(group.price)}</span></div>` +
+    `<div class="pill-body">${countBadge}${savedStar}${newDot}<span class="pill-price">${compactPrice(group.price)}</span></div>` +
     `${diffBadge}` +
     '</div>';
 

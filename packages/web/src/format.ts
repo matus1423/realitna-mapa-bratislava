@@ -50,3 +50,29 @@ export function priceRatioLabel(ratio: number | null): { text: string; tone: 'go
     ? { text: `o ${pct} % lacnejší než okolie`, tone: 'good' }
     : { text: `o ${pct} % drahší než okolie`, tone: 'bad' };
 }
+
+/**
+ * Ako dlho je byt v ponuke. Uprednostňujeme dátum zverejnenia z portálu;
+ * ten má ale len nehnutelnosti.sk, pri ostatných vieme nanajvýš to, kedy
+ * sme ho prvýkrát videli my — a to je pri prvom crawle dnešok, takže
+ * takú hodnotu radšej nezobrazujeme vôbec, než by mala klamať.
+ */
+export function daysOnMarket(
+  publishedAt: string | null,
+  firstSeenAt: string,
+): { days: number; exact: boolean } | null {
+  const source = publishedAt ?? firstSeenAt;
+  const days = Math.floor((Date.now() - Date.parse(source)) / 86_400_000);
+  if (!Number.isFinite(days) || days < 0) return null;
+  if (publishedAt == null && days < 7) return null;
+  return { days, exact: publishedAt != null };
+}
+
+export function daysLabel(days: number): string {
+  if (days === 0) return 'dnes';
+  if (days === 1) return 'včera';
+  if (days < 5) return `${days} dni`;
+  if (days < 31) return `${days} dní`;
+  const months = Math.round(days / 30);
+  return months === 1 ? 'mesiac' : months < 5 ? `${months} mesiace` : `${months} mesiacov`;
+}

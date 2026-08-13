@@ -5,6 +5,9 @@ interface Props {
   state: MapState;
   onChange: (patch: Partial<MapState>) => void;
   visibleCount: number;
+  savedCount: number;
+  onlySaved: boolean;
+  onOnlySavedChange: (value: boolean) => void;
 }
 
 const ROOM_OPTIONS = [
@@ -19,7 +22,14 @@ function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 }
 
-export function FilterPanel({ state, onChange, visibleCount }: Props) {
+export function FilterPanel({
+  state,
+  onChange,
+  visibleCount,
+  savedCount,
+  onlySaved,
+  onOnlySavedChange,
+}: Props) {
   return (
     <aside className="filter-panel">
       <div className="panel-section">
@@ -72,6 +82,17 @@ export function FilterPanel({ state, onChange, visibleCount }: Props) {
           />
         </div>
       </div>
+
+      {savedCount > 0 && (
+        <div className="panel-section">
+          <button
+            className={`chip saved-toggle${onlySaved ? ' is-active' : ''}`}
+            onClick={() => onOnlySavedChange(!onlySaved)}
+          >
+            ★ Len uložené ({savedCount})
+          </button>
+        </div>
+      )}
 
       <div className="panel-footer">
         <span className="result-count">{visibleCount.toLocaleString('sk-SK')} vo výreze</span>

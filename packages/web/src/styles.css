@@ -439,6 +439,95 @@ body {
   padding: 12px 14px 14px;
 }
 
+.card-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-save {
+  border: 0;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: #cbd5e1;
+  padding: 0 2px;
+}
+
+.card-save.is-saved {
+  color: #f59e0b;
+}
+
+.pill-star {
+  color: #f59e0b;
+}
+
+.marker-pill.is-saved .pill-body {
+  outline: 2px solid #f59e0b;
+  outline-offset: -2px;
+}
+
+.saved-toggle {
+  width: 100%;
+}
+
+.price-history {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.ph-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ph-change.tone-good {
+  color: #047857;
+}
+
+.ph-change.tone-bad {
+  color: #b91c1c;
+}
+
+.ph-chart {
+  width: 100%;
+  height: 44px;
+  margin-top: 4px;
+}
+
+.ph-chart polyline {
+  stroke: var(--muted);
+}
+
+.ph-chart circle {
+  fill: var(--muted);
+}
+
+.ph-chart.tone-good polyline,
+.ph-chart.tone-good circle {
+  stroke: #047857;
+  fill: #047857;
+}
+
+.ph-chart.tone-bad polyline,
+.ph-chart.tone-bad circle {
+  stroke: #b91c1c;
+  fill: #b91c1c;
+}
+
+.ph-foot {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .card-price {
   font-size: 20px;
   font-weight: 700;

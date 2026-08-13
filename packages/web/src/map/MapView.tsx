@@ -13,6 +13,8 @@ interface Props {
   onSelect: (ids: string[]) => void;
   onCountChange: (count: number) => void;
   selectedIds: string[];
+  savedIds: Set<string>;
+  onlySaved: boolean;
 }
 
 type ClusterProps = { cluster: true; cluster_id: number; point_count: number };
@@ -36,7 +38,15 @@ function buildQuery(state: MapState, bounds: L.LatLngBounds): string {
   return p.toString();
 }
 
-export function MapView({ state, onViewChange, onSelect, onCountChange, selectedIds }: Props) {
+export function MapView({
+  state,
+  onViewChange,
+  onSelect,
+  onCountChange,
+  selectedIds,
+  savedIds,
+  onlySaved,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -97,7 +107,6 @@ export function MapView({ state, onViewChange, onSelect, onCountChange, selected
         })
         .then((data) => {
           setMarkers(data.markers);
-          onCountChange(data.markers.length);
         })
         .catch((err: unknown) => {
           if ((err as Error).name !== 'AbortError') console.error(err);
@@ -118,9 +127,17 @@ export function MapView({ state, onViewChange, onSelect, onCountChange, selected
     onCountChange,
   ]);
 
+  // počet vo výreze hlásime až po filtri, nech sedí s tým, čo je vidieť
+  useEffect(() => {
+    onCountChange(onlySaved ? markers.filter((m) => savedIds.has(m.id)).length : markers.length);
+  }, [markers, onlySaved, savedIds, onCountChange]);
+
   // --- clustering ------------------------------------------------------------
   const index = useMemo(() => {
-    const groups = groupByCoordinate(markers);
+    // "len uložené" filtrujeme na klientovi — ID uložených sú v prehliadači
+    // a posielať ich na server by znamenalo tlačiť tam osobný zoznam
+    const visible = onlySaved ? markers.filter((m) => savedIds.has(m.id)) : markers;
+    const groups = groupByCoordinate(visible);
     const sc = new Supercluster<GroupProps, ClusterProps>({
       radius: 60,
       // nad zoom 15 už zhluky nechceme — tam sa majú ukazovať ceny
@@ -135,7 +152,7 @@ export function MapView({ state, onViewChange, onSelect, onCountChange, selected
       })),
     );
     return sc;
-  }, [markers]);
+  }, [markers, onlySaved, savedIds]);
 
   // --- vykreslenie -----------------------------------------------------------
   useEffect(() => {
@@ -170,14 +187,15 @@ export function MapView({ state, onViewChange, onSelect, onCountChange, selected
 
       const group = (props as GroupProps).group;
       const isSelected = group.ids.some((id) => selectedIds.includes(id));
+      const isSaved = group.ids.some((id) => savedIds.has(id));
       const marker = L.marker([lat, lng], {
-        icon: createPriceIcon(group, isSelected),
+        icon: createPriceIcon(group, isSelected, isSaved),
         zIndexOffset: isSelected ? 1000 : 0,
       });
       marker.on('click', () => onSelect(group.ids));
       layer.addLayer(marker);
     }
-  }, [index, view, selectedIds, onSelect]);
+  }, [index, view, selectedIds, savedIds, onSelect]);
 
   return <div ref={containerRef} className="map-container" />;
 }

@@ -1,6 +1,7 @@
 import type { Listing } from '@rmb/shared';
 import { useEffect, useState } from 'react';
-import { formatArea, fullPrice, priceRatioLabel, roomsLabel } from '../format.js';
+import { daysLabel, daysOnMarket, formatArea, fullPrice, priceRatioLabel, roomsLabel } from '../format.js';
+import { PriceHistory } from './PriceHistory.js';
 
 /** Inzerát doplnený o portály, na ktorých ten istý byt visí tiež. */
 interface ListingWithSources extends Listing {
@@ -20,13 +21,15 @@ const sourceLabel = (source: string): string => SOURCE_LABELS[source] ?? source;
 interface Props {
   ids: string[];
   onClose: () => void;
+  isSaved: (id: string) => boolean;
+  onToggleSave: (id: string) => void;
 }
 
 /**
  * Karta inzerátu. Detaily sa doťahujú až po kliknutí na marker — v odpovedi
  * pre mapu popisy ani fotky nie sú, a ani tam nemajú čo robiť.
  */
-export function ListingPopup({ ids, onClose }: Props) {
+export function ListingPopup({ ids, onClose, isSaved, onToggleSave }: Props) {
   const [listings, setListings] = useState<ListingWithSources[] | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
@@ -67,6 +70,8 @@ export function ListingPopup({ ids, onClose }: Props) {
 
   const photos = listing.imageUrls;
   const ratio = priceRatioLabel(listing.priceRatio);
+  const onMarket = daysOnMarket(listing.publishedAt, listing.firstSeenAt);
+  const saved = isSaved(listing.id);
 
   return (
     <aside className="listing-card">
@@ -122,7 +127,17 @@ export function ListingPopup({ ids, onClose }: Props) {
       </div>
 
       <div className="card-body">
-        <div className="card-price">{fullPrice(listing.price)}</div>
+        <div className="card-price-row">
+          <div className="card-price">{fullPrice(listing.price)}</div>
+          <button
+            className={`card-save${saved ? ' is-saved' : ''}`}
+            onClick={() => onToggleSave(listing.id)}
+            aria-pressed={saved}
+            title={saved ? 'Odobrať z uložených' : 'Uložiť inzerát'}
+          >
+            {saved ? '★' : '☆'}
+          </button>
+        </div>
         <div className="card-meta">
           {[roomsLabel(listing.rooms, listing.propertyType), formatArea(listing.areaM2)]
             .filter(Boolean)
@@ -142,6 +157,15 @@ export function ListingPopup({ ids, onClose }: Props) {
         )}
 
         {ratio && <div className={`card-ratio tone-${ratio.tone}`}>{ratio.text}</div>}
+
+        {onMarket && (
+          <div className="card-sub">
+            V ponuke {daysLabel(onMarket.days)}
+            {!onMarket.exact && <span className="card-sub-dim"> (odkedy o ňom vieme)</span>}
+          </div>
+        )}
+
+        <PriceHistory listingId={listing.id} />
 
         {listing.locationRadius != null && listing.locationRadius >= 1000 && (
           <div className="card-warning">
