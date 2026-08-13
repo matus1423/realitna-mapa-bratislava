@@ -44,7 +44,13 @@ CREATE TABLE IF NOT EXISTS listings (
 
   -- id "kanonického" inzerátu, ak ide o tú istú nehnuteľnosť z iného portálu.
   -- NULL = toto je kanonický záznam a patrí na mapu.
-  duplicate_of      TEXT
+  duplicate_of      TEXT,
+
+  -- medián €/m² v okolí a pomer ceny bytu k nemu (0,85 = o 15 % pod okolím).
+  -- Prepočítava sa po každom crawle, nie pri dotaze — na tisíckach bodov by
+  -- to inak mapu položilo.
+  area_price_per_m2 REAL,
+  price_ratio       REAL
 );
 
 -- Hlavný dotaz mapy je "daj inzeráty vo výreze". SQLite nemá priestorový index,

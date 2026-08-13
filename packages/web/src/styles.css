@@ -226,6 +226,34 @@ body {
   color: #475569;
 }
 
+/* Cena oproti okoliu. Farbí sa ľavý pruh, nie celá pilulka — cena musí
+   ostať čitateľná a farba je doplnková informácia, nie hlavná. */
+.marker-pill.is-bargain .pill-body,
+.marker-pill.is-below .pill-body,
+.marker-pill.is-above .pill-body,
+.marker-pill.is-pricey .pill-body {
+  border-left: 4px solid transparent;
+  padding-left: 6px;
+}
+
+.marker-pill.is-bargain .pill-body {
+  border-left-color: #047857;
+  background: #ecfdf5;
+}
+
+.marker-pill.is-below .pill-body {
+  border-left-color: #6ee7b7;
+}
+
+.marker-pill.is-above .pill-body {
+  border-left-color: #fca5a5;
+}
+
+.marker-pill.is-pricey .pill-body {
+  border-left-color: #b91c1c;
+  background: #fef2f2;
+}
+
 .marker-pill.is-selected .pill-body {
   background: var(--accent);
   color: #fff;
@@ -458,6 +486,29 @@ body {
   color: #92400e;
   border-radius: 6px;
   font-size: 11px;
+}
+
+.card-sub-dim {
+  opacity: 0.7;
+}
+
+.card-ratio {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.card-ratio.tone-good {
+  color: #047857;
+}
+
+.card-ratio.tone-bad {
+  color: #b91c1c;
+}
+
+.card-ratio.tone-neutral {
+  color: var(--muted);
+  font-weight: 500;
 }
 
 .card-link {

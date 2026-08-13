@@ -1,4 +1,4 @@
-import type { Listing } from '@rmb/shared';
+import type { ScrapedListing } from '@rmb/shared';
 import { isInBratislavaArea, parseNumber, pricePerM2 } from '@rmb/shared';
 import { attr, decodeEntities, labelValue, textLines } from './html.js';
 import type { ListPageResult, Source } from './source.js';
@@ -58,7 +58,7 @@ export const toprealitySource: Source = {
     };
   },
 
-  parseDetail(html: string, url: string): Listing | null {
+  parseDetail(html: string, url: string): ScrapedListing | null {
     const idMatch = /-r(\d+)\.html/.exec(url);
     if (!idMatch?.[1]) return null;
     const id = idMatch[1];

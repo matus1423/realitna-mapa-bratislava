@@ -1,4 +1,4 @@
-import type { DealType, Listing } from '@rmb/shared';
+import type { DealType, ScrapedListing } from '@rmb/shared';
 import {
   isInBratislavaArea,
   mapPropertyType,
@@ -170,7 +170,7 @@ export const nehnutelnostiSource: Source = {
     };
   },
 
-  parseDetail(html: string, url: string): Listing | null {
+  parseDetail(html: string, url: string): ScrapedListing | null {
     const flight = extractFlightPayload(html);
     const ad = extractObject(flight, 'advertisement') as RawAd | null;
     if (!ad?.id) return null;

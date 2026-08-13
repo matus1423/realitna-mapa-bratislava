@@ -41,6 +41,10 @@ function migrate(db: Database.Database): void {
   if (!columns.has('duplicate_of')) {
     db.exec('ALTER TABLE listings ADD COLUMN duplicate_of TEXT');
   }
+  if (!columns.has('area_price_per_m2')) {
+    db.exec('ALTER TABLE listings ADD COLUMN area_price_per_m2 REAL');
+    db.exec('ALTER TABLE listings ADD COLUMN price_ratio REAL');
+  }
 
   // index až tu, nie v schema.sql — tam by na staršej databáze bežal skôr,
   // než by stĺpec vôbec existoval

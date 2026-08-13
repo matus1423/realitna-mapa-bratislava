@@ -1,4 +1,4 @@
-import type { Listing } from '@rmb/shared';
+import type { ScrapedListing } from '@rmb/shared';
 import { isInBratislavaArea, parseNumber, pricePerM2 } from '@rmb/shared';
 import { attr, findLd } from './html.js';
 import type { ListPageResult, Source } from './source.js';
@@ -47,7 +47,7 @@ export const realitySource: Source = {
     return { detailUrls: [...urls], totalCount: null, itemsOnPage: urls.size };
   },
 
-  parseDetail(html: string, url: string): Listing | null {
+  parseDetail(html: string, url: string): ScrapedListing | null {
     const idMatch = /\/([A-Za-z0-9]{8,})\/?$/.exec(url);
     if (!idMatch?.[1]) return null;
 

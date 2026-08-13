@@ -1,4 +1,4 @@
-import type { Listing } from '@rmb/shared';
+import type { ScrapedListing } from '@rmb/shared';
 
 export interface Coords {
   lat: number;
@@ -46,7 +46,7 @@ export interface Source {
    * oblasti, nie byt). `coords` je vyplnené len pri portáloch, ktoré držia
    * polohu mimo detailu.
    */
-  parseDetail(html: string, url: string, coords?: Coords | null): Listing | null;
+  parseDetail(html: string, url: string, coords?: Coords | null): ScrapedListing | null;
 
   /**
    * Voliteľné: portál načítava mapu zvlášť (zoznamrealit.sk). Driver stiahne

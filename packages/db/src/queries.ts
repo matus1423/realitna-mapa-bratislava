@@ -1,4 +1,11 @@
-import type { BBox, Listing, ListingFilters, ListingMarker, PropertyType } from '@rmb/shared';
+import type {
+  BBox,
+  Listing,
+  ListingFilters,
+  ListingMarker,
+  PropertyType,
+  ScrapedListing,
+} from '@rmb/shared';
 import { getDb } from './client.js';
 
 interface ListingRow {
@@ -33,6 +40,8 @@ interface ListingRow {
   published_at: string | null;
   first_seen_at: string;
   scraped_at: string;
+  area_price_per_m2: number | null;
+  price_ratio: number | null;
 }
 
 function rowToListing(row: ListingRow): Listing {
@@ -68,6 +77,8 @@ function rowToListing(row: ListingRow): Listing {
     publishedAt: row.published_at,
     firstSeenAt: row.first_seen_at,
     scrapedAt: row.scraped_at,
+    areaPricePerM2: row.area_price_per_m2,
+    priceRatio: row.price_ratio,
   };
 }
 
@@ -75,7 +86,7 @@ function rowToListing(row: ListingRow): Listing {
  * Zapíše inzerát a zároveň zaznamená cenu do histórie, ak sa zmenila.
  * `first_seen_at` sa pri opakovanom behu nemení — preto COALESCE na starú hodnotu.
  */
-export function upsertListing(listing: Listing): void {
+export function upsertListing(listing: ScrapedListing): void {
   const db = getDb();
 
   const stmt = db.prepare(`
@@ -220,10 +231,11 @@ export function findMarkersInBBox(opts: FindOptions): ListingMarker[] {
       first_price: number | null;
       published_at: string | null;
       location_radius: number | null;
+      price_ratio: number | null;
     }>(
       `SELECT
          l.id, l.lat, l.lng, l.price, l.property_type, l.rooms, l.published_at,
-         l.location_radius,
+         l.location_radius, l.price_ratio,
          (SELECT ph.price FROM price_history ph
            WHERE ph.listing_id = l.id
            ORDER BY ph.seen_at ASC LIMIT 1) AS first_price
@@ -247,6 +259,7 @@ export function findMarkersInBBox(opts: FindOptions): ListingMarker[] {
         ? row.price - row.first_price
         : null,
     isNew: row.published_at != null && Date.parse(row.published_at) > weekAgo,
+    priceRatio: row.price_ratio,
     // Bazoš dáva len ťažisko PSČ — taký bod nesmie na mape vyzerať
     // rovnako sebavedomo ako adresa presná na ulicu
     imprecise: (row.location_radius ?? 0) >= 1000,

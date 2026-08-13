@@ -20,6 +20,8 @@ export interface MarkerGroup {
   priceDiff: number | null;
   hasNew: boolean;
   propertyType: string;
+  /** Pomer ceny k okoliu; berieme z najlacnejšieho bytu v skupine. */
+  priceRatio: number | null;
   rooms: number | null;
   /** Aspoň jeden inzerát v skupine má len približnú polohu. */
   imprecise: boolean;
@@ -44,6 +46,7 @@ export function groupByCoordinate(markers: ListingMarker[]): MarkerGroup[] {
         priceDiff: marker.priceDiff,
         hasNew: marker.isNew,
         propertyType: marker.propertyType,
+        priceRatio: marker.priceRatio,
         rooms: marker.rooms,
         imprecise: marker.imprecise,
       });
@@ -55,6 +58,7 @@ export function groupByCoordinate(markers: ListingMarker[]): MarkerGroup[] {
     if (marker.price != null && (existing.price == null || marker.price < existing.price)) {
       existing.price = marker.price;
       existing.rooms = marker.rooms;
+      existing.priceRatio = marker.priceRatio;
     }
     if (marker.priceDiff != null && (existing.priceDiff == null || marker.priceDiff < existing.priceDiff)) {
       existing.priceDiff = marker.priceDiff;

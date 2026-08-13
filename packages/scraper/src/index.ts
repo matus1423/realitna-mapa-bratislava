@@ -1,6 +1,7 @@
 import { parseArgs } from 'node:util';
 import { countBySource, countListings, deactivateMissing, upsertListing } from '@rmb/db';
 import { dedupe } from './dedupe.js';
+import { computePriceIndex } from './price-index.js';
 import { fetchHtml, setMinDelay } from './http.js';
 import { assertCrawlable } from './robots.js';
 import { bazosSource } from './sources/bazos.js';
@@ -212,6 +213,12 @@ async function main(): Promise<void> {
         `${result.byMatch} podľa polohy a parametrov)`,
     );
   }
+
+  // až po deduplikácii — index sa počíta z toho, čo je naozaj na mape
+  const index = computePriceIndex();
+  console.log(
+    `Index cien: dopočítaný pre ${index.computed} bytov, ${index.skipped} bez dostatku susedov`,
+  );
 
   const counts = countListings();
   console.log(`V databáze: ${counts.total} inzerátov, ${counts.unique} unikátnych na mape.`);

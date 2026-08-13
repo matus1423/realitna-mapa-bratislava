@@ -10,6 +10,28 @@ const BUILDING_SVG =
  * Cenová pilulka. Vykresľuje sa cez `divIcon`, nie cez SVG vrstvu —
  * potrebujeme viacriadkový obsah (počet, cena, zľava) a hover stavy.
  */
+/**
+ * Hranice pásiem sú odvodené zo skutočného rozloženia v dátach, nie od oka:
+ * p10 = 0,76 · p25 = 0,88 · medián = 1,00 · p75 = 1,16 · p90 = 1,36.
+ *
+ * Rozptyl €/m² v rámci jednej štvrte je teda veľký — o cene rozhoduje stav,
+ * poschodie aj novostavba, nielen poloha. Prvý pokus s hranicami ±15 % preto
+ * označil takmer polovicu mesta za výnimočnú, čo nehovorí nič.
+ */
+const BARGAIN = 0.76;
+const BELOW = 0.88;
+const ABOVE = 1.16;
+const PRICEY = 1.36;
+
+function valueClass(ratio: number | null): string {
+  if (ratio == null) return '';
+  if (ratio <= BARGAIN) return ' is-bargain';
+  if (ratio <= BELOW) return ' is-below';
+  if (ratio >= PRICEY) return ' is-pricey';
+  if (ratio >= ABOVE) return ' is-above';
+  return '';
+}
+
 export function createPriceIcon(group: MarkerGroup, isSelected: boolean): L.DivIcon {
   const diff = priceDiffLabel(group.priceDiff);
   const countBadge =
@@ -18,7 +40,7 @@ export function createPriceIcon(group: MarkerGroup, isSelected: boolean): L.DivI
   const newDot = group.hasNew ? '<span class="pill-new" title="Nový inzerát"></span>' : '';
 
   const html =
-    `<div class="marker-pill${isSelected ? ' is-selected' : ''}${group.imprecise ? ' is-imprecise' : ''}"` +
+    `<div class="marker-pill${isSelected ? ' is-selected' : ''}${group.imprecise ? ' is-imprecise' : ''}${valueClass(group.priceRatio)}"` +
     `${group.imprecise ? ' title="Poloha je len približná — portál uvádza iba PSČ"' : ''}>` +
     `<div class="pill-body">${countBadge}${newDot}<span class="pill-price">${compactPrice(group.price)}</span></div>` +
     `${diffBadge}` +

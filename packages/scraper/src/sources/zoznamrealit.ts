@@ -1,4 +1,4 @@
-import type { Listing } from '@rmb/shared';
+import type { ScrapedListing } from '@rmb/shared';
 import { isInBratislavaArea, parseNumber, pricePerM2 } from '@rmb/shared';
 import { decodeEntities, findLd, jsonLd } from './html.js';
 import type { Coords, ListPageResult, Source } from './source.js';
@@ -50,7 +50,7 @@ export const zoznamrealitSource: Source = {
     return lat != null && lng != null ? { lat, lng } : null;
   },
 
-  parseDetail(html: string, url: string, coords?: Coords | null): Listing | null {
+  parseDetail(html: string, url: string, coords?: Coords | null): ScrapedListing | null {
     const id = numericId(url);
     if (!id || !coords) return null;
     if (!isInBratislavaArea(coords.lat, coords.lng)) return null;

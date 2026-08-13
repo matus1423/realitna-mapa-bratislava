@@ -78,6 +78,11 @@ export interface Listing {
   publishedAt: string | null;
   firstSeenAt: string;
   scrapedAt: string;
+
+  /** Medián €/m² v okolí (~500 m). */
+  areaPricePerM2: number | null;
+  /** Pomer ceny bytu k okoliu; 0,85 = o 15 % lacnejší. */
+  priceRatio: number | null;
 }
 
 /**
@@ -97,7 +102,15 @@ export interface ListingMarker {
   isNew: boolean;
   /** Poloha je len približná (ťažisko PSČ), nie adresa. */
   imprecise: boolean;
+  /** Pomer ceny k okoliu; 0,85 = o 15 % lacnejší než okolie. */
+  priceRatio: number | null;
 }
+
+/**
+ * To, čo vie dať scraper. `areaPricePerM2` a `priceRatio` sa dopočítavajú
+ * až po crawle z celej databázy, takže ich jednotlivý parser nemá odkiaľ vedieť.
+ */
+export type ScrapedListing = Omit<Listing, 'areaPricePerM2' | 'priceRatio'>;
 
 export interface ListingFilters {
   dealType?: DealType;

@@ -1,6 +1,6 @@
 import type { Listing } from '@rmb/shared';
 import { useEffect, useState } from 'react';
-import { formatArea, fullPrice, roomsLabel } from '../format.js';
+import { formatArea, fullPrice, priceRatioLabel, roomsLabel } from '../format.js';
 
 /** Inzerát doplnený o portály, na ktorých ten istý byt visí tiež. */
 interface ListingWithSources extends Listing {
@@ -66,6 +66,7 @@ export function ListingPopup({ ids, onClose }: Props) {
   if (!listing) return null;
 
   const photos = listing.imageUrls;
+  const ratio = priceRatioLabel(listing.priceRatio);
 
   return (
     <aside className="listing-card">
@@ -130,8 +131,17 @@ export function ListingPopup({ ids, onClose }: Props) {
         <div className="card-address">{listing.address ?? '—'}</div>
 
         {listing.pricePerM2 != null && (
-          <div className="card-sub">{Math.round(listing.pricePerM2).toLocaleString('sk-SK')} €/m²</div>
+          <div className="card-sub">
+            {Math.round(listing.pricePerM2).toLocaleString('sk-SK')} €/m²
+            {listing.areaPricePerM2 != null && (
+              <span className="card-sub-dim">
+                {' '}· okolie {listing.areaPricePerM2.toLocaleString('sk-SK')} €/m²
+              </span>
+            )}
+          </div>
         )}
+
+        {ratio && <div className={`card-ratio tone-${ratio.tone}`}>{ratio.text}</div>}
 
         {listing.locationRadius != null && listing.locationRadius >= 1000 && (
           <div className="card-warning">

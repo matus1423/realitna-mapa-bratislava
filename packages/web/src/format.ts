@@ -36,3 +36,17 @@ export function roomsLabel(rooms: number | null, propertyType: string): string {
   if (rooms === 1) return '1 izbový byt';
   return `${rooms} izbový byt`;
 }
+
+/**
+ * Pomer ceny k okoliu ako veta. 0,85 → "o 15 % lacnejší než okolie".
+ * Rozdiely pod 5 % nekomentujeme — pri mediáne z pár desiatok bytov
+ * by to bolo predstieranie presnosti.
+ */
+export function priceRatioLabel(ratio: number | null): { text: string; tone: 'good' | 'bad' | 'neutral' } | null {
+  if (ratio == null) return null;
+  const pct = Math.round(Math.abs(1 - ratio) * 100);
+  if (pct < 5) return { text: 'zhruba na úrovni okolia', tone: 'neutral' };
+  return ratio < 1
+    ? { text: `o ${pct} % lacnejší než okolie`, tone: 'good' }
+    : { text: `o ${pct} % drahší než okolie`, tone: 'bad' };
+}

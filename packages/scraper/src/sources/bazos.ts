@@ -1,4 +1,4 @@
-import type { Listing } from '@rmb/shared';
+import type { ScrapedListing } from '@rmb/shared';
 import { isInBratislavaArea, parseNumber, pricePerM2 } from '@rmb/shared';
 import { decodeEntities, labelValue, textLines } from './html.js';
 import type { ListPageResult, Source } from './source.js';
@@ -38,7 +38,7 @@ export const bazosSource: Source = {
     return { detailUrls: [...new Set(urls)], totalCount: null, itemsOnPage: allItems.size };
   },
 
-  parseDetail(html: string, url: string): Listing | null {
+  parseDetail(html: string, url: string): ScrapedListing | null {
     const idMatch = /\/inzerat\/(\d+)\//.exec(url);
     if (!idMatch?.[1]) return null;
     const id = idMatch[1];
