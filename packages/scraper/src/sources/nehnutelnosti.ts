@@ -23,12 +23,15 @@ const ORIGIN = 'https://www.nehnutelnosti.sk';
  * zbytočne sťahovali a zahadzovali. Najväčší okres má ~49 strán, čiže
  * všetky sa zmestia pod strop.
  */
+const OKRESY = ['i', 'ii', 'iii', 'iv', 'v'];
+
+/**
+ * Prenájmy zbierame tiež — jednak sa dajú zobraziť na mape, jednak sú
+ * podkladom pre odhad výnosu pri bytoch na predaj.
+ */
 const LIST_PATHS = [
-  '/vysledky/byty/bratislava-i/predaj',
-  '/vysledky/byty/bratislava-ii/predaj',
-  '/vysledky/byty/bratislava-iii/predaj',
-  '/vysledky/byty/bratislava-iv/predaj',
-  '/vysledky/byty/bratislava-v/predaj',
+  ...OKRESY.map((o) => `/vysledky/byty/bratislava-${o}/predaj`),
+  ...OKRESY.map((o) => `/vysledky/byty/bratislava-${o}/prenajom`),
 ];
 
 /**

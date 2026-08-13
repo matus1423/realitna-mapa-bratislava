@@ -27,10 +27,12 @@ interface Row {
   lat: number;
   lng: number;
   price_per_m2: number;
+  deal_type: string;
 }
 
-const cellKey = (lat: number, lng: number): string =>
-  `${Math.floor(lat / CELL_LAT)}:${Math.floor(lng / CELL_LNG)}`;
+/** Predaj a prenájom sú dva nesúvisiace trhy — mriežka je pre každý vlastná. */
+const cellKey = (lat: number, lng: number, dealType: string): string =>
+  `${dealType}:${Math.floor(lat / CELL_LAT)}:${Math.floor(lng / CELL_LNG)}`;
 
 /**
  * Ku každému bytu dopočíta medián €/m² v jeho okolí a pomer jeho vlastnej
@@ -46,7 +48,7 @@ export function computePriceIndex(): PriceIndexResult {
 
   const rows = db
     .prepare<[], Row>(
-      `SELECT id, lat, lng, price_per_m2
+      `SELECT id, lat, lng, price_per_m2, deal_type
          FROM listings
         WHERE is_active = 1 AND duplicate_of IS NULL
           AND price_per_m2 IS NOT NULL AND price_per_m2 > 0`,
@@ -57,21 +59,21 @@ export function computePriceIndex(): PriceIndexResult {
   // namiesto porovnávania každého s každým
   const grid = new Map<string, number[]>();
   for (const row of rows) {
-    const key = cellKey(row.lat, row.lng);
+    const key = cellKey(row.lat, row.lng, row.deal_type);
     const bucket = grid.get(key);
     if (bucket) bucket.push(row.price_per_m2);
     else grid.set(key, [row.price_per_m2]);
   }
 
   /** Ceny z okolia; `ring` 1 = 3×3 bunky, 2 = 5×5. */
-  function neighbourhood(lat: number, lng: number, ring: number): number[] {
+  function neighbourhood(lat: number, lng: number, dealType: string, ring: number): number[] {
     const baseLat = Math.floor(lat / CELL_LAT);
     const baseLng = Math.floor(lng / CELL_LNG);
     const out: number[] = [];
 
     for (let dLat = -ring; dLat <= ring; dLat++) {
       for (let dLng = -ring; dLng <= ring; dLng++) {
-        const bucket = grid.get(`${baseLat + dLat}:${baseLng + dLng}`);
+        const bucket = grid.get(`${dealType}:${baseLat + dLat}:${baseLng + dLng}`);
         if (bucket) out.push(...bucket);
       }
     }
@@ -92,8 +94,8 @@ export function computePriceIndex(): PriceIndexResult {
     for (const row of rows) {
       // v riedkych častiach mesta rozšírime okolie, radšej hrubší odhad
       // než žiadny; ak ani 5×5 nestačí, index nedávame vôbec
-      let sample = neighbourhood(row.lat, row.lng, 1);
-      if (sample.length < MIN_SAMPLE) sample = neighbourhood(row.lat, row.lng, 2);
+      let sample = neighbourhood(row.lat, row.lng, row.deal_type, 1);
+      if (sample.length < MIN_SAMPLE) sample = neighbourhood(row.lat, row.lng, row.deal_type, 2);
 
       if (sample.length < MIN_SAMPLE) {
         clear.run(row.id);

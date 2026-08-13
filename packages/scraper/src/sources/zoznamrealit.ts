@@ -17,10 +17,10 @@ function numericId(url: string): string | null {
  */
 export const zoznamrealitSource: Source = {
   name: 'zoznamrealit',
-  categories: ['byty'],
+  categories: ['byty na predaj', 'byty na prenájom'],
 
-  listUrl(_categoryIndex: number, page: number): string {
-    const base = `${ORIGIN}/predaj/byty/bratislava`;
+  listUrl(categoryIndex: number, page: number): string {
+    const base = `${ORIGIN}/${categoryIndex === 0 ? 'predaj' : 'prenajom'}/byty/bratislava`;
     return page === 1 ? base : `${base}/${page}`;
   },
 
@@ -65,6 +65,11 @@ export const zoznamrealitSource: Source = {
     const ogTitle = /property="og:title" content="([^"]*)"/.exec(html)?.[1];
     const address = ogTitle ? decodeEntities(ogTitle).split(',').slice(1).join(',').trim() : null;
 
+    const breadcrumb = findLd(html, 'BreadcrumbList')?.['itemListElement'] as
+      | { name?: string; item?: { name?: string } }[]
+      | undefined;
+    const breadcrumbRoot = breadcrumb?.[0]?.name ?? breadcrumb?.[0]?.item?.name ?? null;
+
     const title = (listing?.['name'] as string | undefined) ?? ogTitle ?? 'Bez názvu';
     const description = (listing?.['description'] as string | undefined) ?? null;
 
@@ -84,7 +89,9 @@ export const zoznamrealitSource: Source = {
       sourceId: id,
       sourceUrl: url,
 
-      dealType: url.includes('/prenajom') || /prenáj/i.test(ogTitle ?? '') ? 'prenajom' : 'predaj',
+      // detail URL typ transakcie neobsahuje; drobček je v breadcrumbe,
+      // ktorý začína položkou "Predaj" alebo "Prenájom"
+      dealType: /prenáj/i.test(breadcrumbRoot ?? '') ? 'prenajom' : 'predaj',
       propertyType: 'byt',
 
       price,
