@@ -33,7 +33,7 @@ export function computeRentalYield(): YieldResult {
     .prepare<[], { lat: number; lng: number; price_per_m2: number }>(
       `SELECT lat, lng, price_per_m2
          FROM listings
-        WHERE is_active = 1 AND duplicate_of IS NULL AND deal_type = 'prenajom'
+        WHERE is_active = 1 AND duplicate_of IS NULL AND is_unavailable = 0 AND deal_type = 'prenajom'
           AND price_per_m2 IS NOT NULL AND price_per_m2 > 0`,
     )
     .all();
@@ -45,7 +45,7 @@ export function computeRentalYield(): YieldResult {
     .prepare<[], Row>(
       `SELECT id, lat, lng, area_m2, price
          FROM listings
-        WHERE is_active = 1 AND duplicate_of IS NULL AND deal_type = 'predaj'
+        WHERE is_active = 1 AND duplicate_of IS NULL AND is_unavailable = 0 AND deal_type = 'predaj'
           AND area_m2 IS NOT NULL AND area_m2 > 0 AND price IS NOT NULL AND price > 0`,
     )
     .all();

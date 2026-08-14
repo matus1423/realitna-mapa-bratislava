@@ -30,7 +30,7 @@ export function computePriceIndex(): PriceIndexResult {
     .prepare<[], Row>(
       `SELECT id, lat, lng, price_per_m2, deal_type
          FROM listings
-        WHERE is_active = 1 AND duplicate_of IS NULL
+        WHERE is_active = 1 AND duplicate_of IS NULL AND is_unavailable = 0
           AND price_per_m2 IS NOT NULL AND price_per_m2 > 0`,
     )
     .all();

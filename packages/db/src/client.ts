@@ -45,6 +45,9 @@ function migrate(db: Database.Database): void {
     db.exec('ALTER TABLE listings ADD COLUMN area_price_per_m2 REAL');
     db.exec('ALTER TABLE listings ADD COLUMN price_ratio REAL');
   }
+  if (!columns.has('is_unavailable')) {
+    db.exec('ALTER TABLE listings ADD COLUMN is_unavailable INTEGER NOT NULL DEFAULT 0');
+  }
   if (!columns.has('estimated_rent')) {
     db.exec('ALTER TABLE listings ADD COLUMN estimated_rent INTEGER');
     db.exec('ALTER TABLE listings ADD COLUMN gross_yield REAL');

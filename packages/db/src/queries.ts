@@ -6,6 +6,7 @@ import type {
   PropertyType,
   ScrapedListing,
 } from '@rmb/shared';
+import { isUnavailableTitle } from '@rmb/shared';
 import { getDb } from './client.js';
 
 interface ListingRow {
@@ -100,14 +101,14 @@ export function upsertListing(listing: ScrapedListing): void {
       address, street, city, district,
       area_m2, land_area_m2, rooms, rooms_raw, floor, condition, has_elevator,
       title, description, image_urls, advertiser_name, advertiser_type,
-      published_at, first_seen_at, scraped_at, is_active
+      published_at, first_seen_at, scraped_at, is_active, is_unavailable
     ) VALUES (
       @id, @source, @sourceId, @sourceUrl, @dealType, @propertyType,
       @price, @priceCurrency, @pricePerM2, @lat, @lng, @locationRadius,
       @address, @street, @city, @district,
       @areaM2, @landAreaM2, @rooms, @roomsRaw, @floor, @condition, @hasElevator,
       @title, @description, @imageUrls, @advertiserName, @advertiserType,
-      @publishedAt, @firstSeenAt, @scrapedAt, 1
+      @publishedAt, @firstSeenAt, @scrapedAt, 1, @isUnavailable
     )
     ON CONFLICT (id) DO UPDATE SET
       source_url    = excluded.source_url,
@@ -123,8 +124,9 @@ export function upsertListing(listing: ScrapedListing): void {
       title         = excluded.title,
       description   = excluded.description,
       image_urls    = excluded.image_urls,
-      scraped_at    = excluded.scraped_at,
-      is_active     = 1
+      scraped_at     = excluded.scraped_at,
+      is_active      = 1,
+      is_unavailable = excluded.is_unavailable
   `);
 
   const historyStmt = db.prepare(`
@@ -141,6 +143,8 @@ export function upsertListing(listing: ScrapedListing): void {
       ...listing,
       hasElevator: listing.hasElevator == null ? null : listing.hasElevator ? 1 : 0,
       imageUrls: JSON.stringify(listing.imageUrls),
+      // odvodené z názvu, takže to nemusí riešiť každý parser zvlášť
+      isUnavailable: isUnavailableTitle(listing.title, listing.dealType) ? 1 : 0,
     });
 
     if (listing.price != null) {
@@ -162,6 +166,8 @@ function buildWhere(opts: FindOptions): { sql: string; params: unknown[] } {
     'l.is_active = 1',
     // duplicity z iných portálov na mapu nepatria
     'l.duplicate_of IS NULL',
+    // predané a rezervované sa kúpiť nedajú a skresľovali by aj medián okolia
+    'l.is_unavailable = 0',
     // cena pod 1000 € pri byte je vždy chyba zdroja alebo "dohodou" zapísané
     // ako nula; na mape by z toho bola pilulka "€0"
     "(l.price IS NULL OR l.price >= 1000)",

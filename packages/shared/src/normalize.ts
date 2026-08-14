@@ -1,4 +1,4 @@
-import type { PropertyType } from './types.js';
+import type { DealType, PropertyType } from './types.js';
 
 /**
  * Kategórie nehnutelnosti.sk (`parameters.category.mainValue`) → naša schéma.
@@ -78,4 +78,25 @@ export function isInBratislavaArea(lat: number, lng: number): boolean {
     lng >= BRATISLAVA_BBOX.lngMin &&
     lng <= BRATISLAVA_BBOX.lngMax
   );
+}
+
+/**
+ * Je inzerát fakticky mimo hry? Realitky nechávajú predané a rezervované
+ * byty visieť ako referenciu na svoju prácu, takže na mape by len zavadzali:
+ * kúpiť sa nedajú a skresľujú aj medián cien v okolí.
+ *
+ * Značka býva v názve — buď na začiatku, alebo za názvom kancelárie
+ * ("SVOBODA & WILLIAMS | REZERVOVANÉ | …"), často bez diakritiky a obalená
+ * hviezdičkami či zátvorkami. Preto sa diakritika najprv zhadzuje a hľadá
+ * sa slovný základ, nie presný tvar.
+ */
+export function isUnavailableTitle(title: string, dealType: DealType): boolean {
+  const normalized = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  if (/\b(rezervovan|predan)\w*/.test(normalized)) return true;
+
+  // Pozor na "prenajatý": pri predaji to znamená byt s nájomníkom, čo je
+  // úplne legitímna ponuka ("Investičný byt, dlhodobo prenajatý").
+  // Mimo hry je len vtedy, keď ide o inzerát na prenájom.
+  return dealType === 'prenajom' && /\b(prenajat)\w*/.test(normalized);
 }

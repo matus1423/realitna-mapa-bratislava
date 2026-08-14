@@ -55,7 +55,10 @@ CREATE TABLE IF NOT EXISTS listings (
   -- odhad mesačného nájmu z okolitých inzerátov na prenájom a hrubý výnos
   -- (ročný nájom / cena). Hrubý = bez dane, správy, opráv a neobsadenosti.
   estimated_rent    INTEGER,
-  gross_yield       REAL
+  gross_yield       REAL,
+
+  -- predané / rezervované: inzerát na portáli visí, ale kúpiť sa nedá
+  is_unavailable    INTEGER NOT NULL DEFAULT 0
 );
 
 -- Hlavný dotaz mapy je "daj inzeráty vo výreze". SQLite nemá priestorový index,

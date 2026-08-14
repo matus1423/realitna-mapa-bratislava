@@ -106,6 +106,44 @@ výreze to je rozdiel medzi plynulou a trhanou mapou.
 Odpovede obsahujú len kanonické záznamy — inzeráty označené ako duplicity
 (`duplicate_of IS NOT NULL`) sa na mapu neposielajú.
 
+## Denný zber
+
+Beží cez launchd každé ráno o 5:00:
+
+```
+~/Library/LaunchAgents/com.maderovci.realitna-mapa.crawl.plist
+  → scripts/daily-crawl.sh
+```
+
+Ak Mac o piatej spí, launchd beh dobehne hneď po prebudení. Logy sú
+v `data/logs/`, mažú sa po dvoch týždňoch; HTML cache po týždni.
+
+Denný beh zámerne obchádza cache — jeho zmyslom je zachytiť zmenu ceny
+a inzeráty, ktoré zmizli, a ani jedno by sa zo starých kópií nezistilo.
+Až týmto sa naplní cenová história, dĺžka v ponuke a zhasínanie predaných.
+
+```bash
+launchctl list | grep realitna     # beží?
+tail -f data/logs/crawl-*.log      # priebeh
+launchctl unload ~/Library/LaunchAgents/com.maderovci.realitna-mapa.crawl.plist   # vypnúť
+```
+
+## Predané a rezervované
+
+Realitky nechávajú predané a rezervované byty visieť ako referenciu na svoju
+prácu. Na mape zavadzajú — kúpiť sa nedajú a skresľujú aj medián cien v okolí,
+preto sa nezobrazujú (`is_unavailable`).
+
+Značka býva v názve, buď na začiatku alebo za názvom kancelárie
+(`SVOBODA & WILLIAMS | REZERVOVANÉ | …`), často bez diakritiky a obalená
+hviezdičkami či zátvorkami. Detekcia preto zhadzuje diakritiku a hľadá slovný
+základ `rezervovan` / `predan`.
+
+Jedna pasca: **„prenajatý" pri predaji znamená byt s nájomníkom**, čo je úplne
+legitímna investičná ponuka. Mimo hry je len vtedy, keď ide o inzerát na
+prenájom. Na dátach to vychádza tak, že sa skryje 7,6 % inzerátov a jediné,
+čo slovo obsahuje a zostáva, sú práve tie obsadené byty na predaj.
+
 ## Odhad nájmu a výnosu
 
 Z inzerátov na prenájom v okolí sa vezme **medián nájmu za m²** a vynásobí
