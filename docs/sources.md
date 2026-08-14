@@ -172,6 +172,21 @@ Ich robots.txt menovite blokuje agregátorové boty (`trovitBot`, `pricebot`,
 `SemrushBot`). Na skupinu `User-agent: *`, pod ktorú spadáme, sa to
 nevzťahuje, ale zámer stojí za zaznamenanie.
 
+## Prenájmy
+
+Zbierajú sa z nehnutelnosti.sk (`/vysledky/byty/bratislava-{i..v}/prenajom`)
+a zoznamrealit.sk (`/prenajom/byty/bratislava`). Slúžia na mapu aj ako podklad
+pre odhad výnosu.
+
+zoznamrealit nemá typ transakcie v URL detailu — berie sa z JSON-LD
+breadcrumbu, ktorý začína položkou „Predaj" alebo „Prenájom".
+
+topreality.sk prenájmy nezbierame. Ich `/bratislava/byty/predam` filtruje len
+prvú stranu a stránkovanie sa vracia k zmiešanému zoznamu, takže prenájmy
+zahadzuje až parser. Pozor aj na cenu: pri prenájmoch je v jednom riadku
+nájom aj energie („1 000 € 100 €") a `parseNumber` zahadzuje medzery, takže
+by z toho vyšlo 1000100 — berie sa prvé číslo.
+
 ## Deduplikácia
 
 `packages/scraper/src/dedupe.ts`, spúšťa sa automaticky na konci každého behu.

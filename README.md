@@ -1,11 +1,27 @@
 # Realitná mapa Bratislava
 
-Interaktívna mapa **bytov na predaj** v Bratislave a blízkom okolí.
+Interaktívna mapa **bytov na predaj a prenájom** v Bratislave a blízkom okolí.
 Dáta sa scrapujú z verejne dostupných inzerátov na štyroch portáloch,
 deduplikujú, ukladajú do SQLite a servujú na mapu postavenú na Leaflete
 a OpenStreetMap.
 
 Domy, pozemky ani komerčné priestory sa nezbierajú.
+
+## Čo mapa vie
+
+- **Cena oproti okoliu** — medián €/m² v okruhu ~500 m; pilulka má farebný
+  pruh a karta to povie slovom („o 24 % lacnejší než okolie"). Bez toho je
+  cena za m² neinterpretovateľná: 4 500 €/m² je v Starom Meste normál
+  a v Petržalke nadpriemer.
+- **Odhad nájmu a hrubý výnos** — z prenájmov v okolí; podrobnosti nižšie.
+- **Uložené inzeráty** — hviezdička, `localStorage`, filter „len uložené".
+  Bez účtov; ukladajú sa iba ID, zvyšok sa doťahuje z API.
+- **Dĺžka v ponuke** — z dátumu zverejnenia, ak ho portál dáva; inak od
+  prvého videnia, čo je označené ako približné.
+- **Cenová história** — malý graf v karte, keď má byt viac záznamov ceny.
+- **Vyznačenie oblasti** — klikaním sa nakreslí tvar, dvojklik uzavrie,
+  Escape zahodí. Oblasť je v URL, takže sa dá poslať odkazom.
+- **Duplicity naprieč portálmi** — karta ukazuje, kde inde ten istý byt visí.
 
 Osobný prototyp, nie komerčný produkt.
 
@@ -38,13 +54,17 @@ npm run scrape -- --limit 20000 --max-pages 400      # plná Bratislava, niekoľ
 
 ### Zdroje
 
-| Zdroj | Bytov v BA | Poloha | Poznámka |
-|---|---|---|---|
-| nehnutelnosti.sk | ~4150 | presná (stred ulice, 200 m) | hlavný zdroj |
-| topreality.sk | ~1316 | presná | robots.txt žiada 6 s medzi requestmi |
-| zoznamrealit.sk | ~1200 | presná | dva requesty na inzerát (mapa zvlášť) |
-| bazos.sk | jednotky na stranu | **ťažisko PSČ (~1,5 km)** | nedá sa filtrovať na BA |
-| reality.sk | — | presná | **vypnuté** — portál blokuje neprehliadačových klientov |
+| Zdroj | Predaj | Prenájom | Poloha | Poznámka |
+|---|---|---|---|---|
+| nehnutelnosti.sk | áno | áno | presná (stred ulice, 200 m) | hlavný zdroj |
+| topreality.sk | áno | nie | presná | robots.txt žiada 6 s medzi requestmi |
+| zoznamrealit.sk | áno | áno | presná | dva requesty na inzerát (mapa zvlášť) |
+| bazos.sk | áno | nie | **ťažisko PSČ (~1,5 km)** | nedá sa filtrovať na BA |
+| reality.sk | — | — | presná | **vypnuté** — portál blokuje neprehliadačových klientov |
+
+Prenájmy zbierame z dvoch dôvodov: dajú sa zobraziť na mape a sú podkladom
+pre odhad výnosu. Z topreality.sk ich neťaháme kvôli ich 6-sekundovej pauze
+a z Bazoša kvôli nepresnej polohe — na medián nájmu v okolí by len pridali šum.
 
 Prekryv medzi portálmi je vysoký: nehnutelnosti.sk, reality.sk a topreality.sk
 patria do tej istej siete. Deduplikácia beží automaticky na konci každého behu
@@ -85,6 +105,32 @@ výreze to je rozdiel medzi plynulou a trhanou mapou.
 
 Odpovede obsahujú len kanonické záznamy — inzeráty označené ako duplicity
 (`duplicate_of IS NOT NULL`) sa na mapu neposielajú.
+
+## Odhad nájmu a výnosu
+
+Z inzerátov na prenájom v okolí sa vezme **medián nájmu za m²** a vynásobí
+plochou posudzovaného bytu; hrubý výnos je potom ročný nájom delený cenou.
+
+Dve obmedzenia, ktoré karta priznáva priamo pod číslom:
+
+- Odhad nepozná stav konkrétneho bytu. Dvojizbák po rekonštrukcii a dvojizbák
+  v pôvodnom stave sa v tej istej ulici prenajímajú za výrazne iné peniaze.
+- Výnos je **hrubý** — bez dane, správy, poistenia, opráv a neobsadenosti.
+  Čisté číslo býva zhruba o tretinu nižšie. Slúži na porovnávanie bytov medzi
+  sebou, nie ako podklad investičného rozhodnutia.
+
+Rozdelenie na 2543 bytoch vyšlo takto: 4 % a viac má 1127 bytov, 3–4 % má
+1026 a pod 3 % je 390. To zodpovedá tomu, čo sa o bratislavskom trhu píše.
+
+## Odvodené hodnoty
+
+`price_ratio`, `area_price_per_m2`, `estimated_rent` a `gross_yield` sa
+nepočítajú pri dotaze, ale raz po každom crawle — na tisíckach markerov by
+to inak mapu položilo. Preto ich scraper ani nevypĺňa: typ `ScrapedListing`
+ich nemá, aby model hovoril pravdu o tom, čo vie jednotlivý parser zistiť.
+
+Poradie na konci behu: deduplikácia → index cien → výnos. Každý krok stojí
+na očistenom výsledku toho predchádzajúceho.
 
 ## Mapa
 
