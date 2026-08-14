@@ -106,27 +106,37 @@ výreze to je rozdiel medzi plynulou a trhanou mapou.
 Odpovede obsahujú len kanonické záznamy — inzeráty označené ako duplicity
 (`duplicate_of IS NOT NULL`) sa na mapu neposielajú.
 
-## Denný zber
+## Pravidelný zber
 
-Beží cez launchd každé ráno o 5:00:
+Dve úlohy v launchd, obe cez `scripts/crawl.sh`:
 
-```
-~/Library/LaunchAgents/com.maderovci.realitna-mapa.crawl.plist
-  → scripts/daily-crawl.sh
-```
+| Úloha | Kedy | Zdroje | Trvanie |
+|---|---|---|---|
+| `denny` | každý deň 5:00 | nehnutelnosti, zoznamrealit, bazos | ~2 h |
+| `tyzdenny` | nedeľa 5:30 | topreality | ~2,5 h |
+
+topreality je zvlášť kvôli `Request-rate: 10/1m` v ich robots.txt — 6 sekúnd
+na request znamená, že samotný tento zdroj trvá dlhšie než všetky ostatné
+dokopy. Denne to nemá zmysel, keď je navyše zo 68 % duplicitný.
 
 Ak Mac o piatej spí, launchd beh dobehne hneď po prebudení. Logy sú
 v `data/logs/`, mažú sa po dvoch týždňoch; HTML cache po týždni.
 
-Denný beh zámerne obchádza cache — jeho zmyslom je zachytiť zmenu ceny
-a inzeráty, ktoré zmizli, a ani jedno by sa zo starých kópií nezistilo.
-Až týmto sa naplní cenová história, dĺžka v ponuke a zhasínanie predaných.
+Beh zámerne obchádza cache — jeho zmyslom je zachytiť zmenu ceny a inzeráty,
+ktoré zmizli, a ani jedno by sa zo starých kópií nezistilo. Až týmto sa
+naplní cenová história, dĺžka v ponuke a zhasínanie predaných.
 
 ```bash
-launchctl list | grep realitna     # beží?
-tail -f data/logs/crawl-*.log      # priebeh
-launchctl unload ~/Library/LaunchAgents/com.maderovci.realitna-mapa.crawl.plist   # vypnúť
+launchctl list | grep realitna       # bežia?
+tail -f data/logs/denny-*.log        # priebeh
+bash scripts/crawl.sh rucne nehnutelnosti,zoznamrealit,bazos   # spustiť teraz
+
+launchctl unload ~/Library/LaunchAgents/com.maderovci.realitna-mapa.denny.plist
+launchctl unload ~/Library/LaunchAgents/com.maderovci.realitna-mapa.tyzdenny.plist
 ```
+
+Obe úlohy bežia na tomto Macu a potrebujú ho zapnutý (alebo prebudený neskôr).
+Presun na server, ktorý beží stále, je otvorená otázka — viď nižšie.
 
 ## Predané a rezervované
 
