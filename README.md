@@ -112,8 +112,22 @@ Dve úlohy v launchd, obe cez `scripts/crawl.sh`:
 
 | Úloha | Kedy | Zdroje | Trvanie |
 |---|---|---|---|
-| `denny` | každý deň 5:00 | nehnutelnosti, zoznamrealit, bazos | ~2 h |
-| `tyzdenny` | nedeľa 5:30 | topreality | ~2,5 h |
+| `denny` | každý deň 5:00 | nehnutelnosti, zoznamrealit, bazos | ~20 min |
+| `tyzdenny` | nedeľa 5:30 | topreality | ~40 min |
+
+### Prečo to netrvá hodiny
+
+Prvý crawl sťahoval detail každého inzerátu — 4000 requestov, dve hodiny.
+Pri dennom behu je to zbytočné, lebo cez noc sa zmení zlomok ponuky.
+
+Zoznamy pritom obsahujú **ID aj cenu** každého inzerátu. Stačí ich teda
+prejsť (~200 strán) a detail stiahnuť len tomu, čo je nové alebo čomu sa
+zmenila cena. Zvyšku sa len posunie `scraped_at`, aby ho záver behu
+nezhasol ako zmiznutý.
+
+Na vzorke to vychádza na 10–15 % inzerátov, ktorým treba stiahnuť detail.
+Ak zdroj cenu v zozname nedáva, detail sa sťahuje vždy — nemáme podľa čoho
+rozhodnúť. Cena dohodou sa tiež vždy dosťahuje, lebo `null` sa nedá porovnať.
 
 topreality je zvlášť kvôli `Request-rate: 10/1m` v ich robots.txt — 6 sekúnd
 na request znamená, že samotný tento zdroj trvá dlhšie než všetky ostatné

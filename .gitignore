@@ -7,3 +7,4 @@ dist/
 data/*.db
 data/*.db-journal
 data/cache/
+data/logs/

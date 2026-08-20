@@ -1,5 +1,12 @@
 import { parseArgs } from 'node:util';
-import { countBySource, countListings, deactivateMissing, upsertListing } from '@rmb/db';
+import {
+  countBySource,
+  countListings,
+  deactivateMissing,
+  getKnownPrices,
+  touchListings,
+  upsertListing,
+} from '@rmb/db';
 import { dedupe } from './dedupe.js';
 import { computePriceIndex } from './price-index.js';
 import { computeRentalYield } from './rental-yield.js';
@@ -35,11 +42,24 @@ interface RunStats {
   saved: number;
   skipped: number;
   failed: number;
+  /** Nezmenené inzeráty, ktorým sme detail vôbec nesťahovali. */
+  unchanged: number;
 }
 
-async function collectDetailUrls(source: Source, limit: number, maxPages: number): Promise<string[]> {
+interface Collected {
+  urls: string[];
+  /** Ceny zo zoznamov, ak ich zdroj vie dať. */
+  prices: Map<string, number | null>;
+}
+
+async function collectDetailUrls(
+  source: Source,
+  limit: number,
+  maxPages: number,
+): Promise<Collected> {
   const seen = new Set<string>();
   const urls: string[] = [];
+  const prices = new Map<string, number | null>();
 
   for (const [categoryIndex, category] of source.categories.entries()) {
     console.log(`\n  kategória "${category}"`);
@@ -65,6 +85,8 @@ async function collectDetailUrls(source: Source, limit: number, maxPages: number
         continue;
       }
 
+      for (const [url, price] of result.prices ?? []) prices.set(url, price);
+
       const fresh = result.detailUrls.filter((u) => !seen.has(u));
       for (const u of fresh) {
         seen.add(u);
@@ -86,7 +108,7 @@ async function collectDetailUrls(source: Source, limit: number, maxPages: number
     if (urls.length >= limit) break;
   }
 
-  return urls.slice(0, limit);
+  return { urls: urls.slice(0, limit), prices };
 }
 
 async function scrapeSource(source: Source, limit: number, maxPages: number): Promise<RunStats> {
@@ -101,13 +123,31 @@ async function scrapeSource(source: Source, limit: number, maxPages: number): Pr
     setMinDelay(Math.max(source.minDelayMs ?? 0, crawlDelayMs));
   }
 
-  const detailUrls = await collectDetailUrls(source, limit, maxPages);
-  console.log(`\n  sťahujem ${detailUrls.length} detailov…`);
+  const { urls: detailUrls, prices } = await collectDetailUrls(source, limit, maxPages);
 
-  const stats: RunStats = { saved: 0, skipped: 0, failed: 0 };
+  // Detail sťahujeme len tomu, čo je nové alebo čomu sa zmenila cena.
+  // Zvyšku stačí posunúť `scraped_at`, aby ho záver behu nezhasol ako zmiznutý.
+  const known = getKnownPrices(source.name);
+  const startedAtIso = startedAt;
+  const unchanged = detailUrls.filter((url) => {
+    if (!known.has(url)) return false;
+    const listed = prices.get(url);
+    // cenu dohodou nevieme porovnať, tak radšej stiahneme detail
+    return listed != null && listed === known.get(url);
+  });
+  const toFetch = detailUrls.filter((url) => !unchanged.includes(url));
 
-  for (const [index, url] of detailUrls.entries()) {
-    const progress = `  [${index + 1}/${detailUrls.length}]`;
+  touchListings(unchanged, startedAtIso);
+
+  console.log(
+    `\n  sťahujem ${toFetch.length} detailov` +
+      (unchanged.length > 0 ? ` (${unchanged.length} nezmenených preskakujem)` : ''),
+  );
+
+  const stats: RunStats = { saved: 0, skipped: 0, failed: 0, unchanged: unchanged.length };
+
+  for (const [index, url] of toFetch.entries()) {
+    const progress = `  [${index + 1}/${toFetch.length}]`;
     try {
       const html = await fetchHtml(url);
 
@@ -140,7 +180,8 @@ async function scrapeSource(source: Source, limit: number, maxPages: number): Pr
   }
 
   console.log(
-    `\n  ${source.name}: uložených ${stats.saved}, preskočených ${stats.skipped}, chýb ${stats.failed}`,
+    `\n  ${source.name}: uložených ${stats.saved}, nezmenených ${stats.unchanged}, ` +
+      `preskočených ${stats.skipped}, chýb ${stats.failed}`,
   );
 
   // Zhasnúť nevidené sa dá len vtedy, keď sme zdroj naozaj prešli celý.
@@ -149,14 +190,16 @@ async function scrapeSource(source: Source, limit: number, maxPages: number): Pr
   // Druhá poistka je proti pokazenému zberu: keď sa rozbije stránkovanie,
   // beh vyzerá ako úspešný, len nazbiera zlomok odkazov — a bez tejto
   // kontroly by zhasol celý zdroj. Raz sa to už stalo, 795 platných bytov.
-  const known = countBySource().find((row) => row.source === source.name)?.total ?? 0;
-  const collectedEnough = known === 0 || detailUrls.length >= known * 0.5;
+  const inDb = countBySource().find((row) => row.source === source.name)?.total ?? 0;
+  const collectedEnough = inDb === 0 || detailUrls.length >= inDb * 0.5;
   const wasFullRun =
-    detailUrls.length < limit && stats.failed < detailUrls.length * 0.1 && collectedEnough;
+    detailUrls.length < limit &&
+    stats.failed < Math.max(toFetch.length * 0.1, 1) &&
+    collectedEnough;
 
   if (!collectedEnough) {
     console.log(
-      `  POZOR: nazbieraných ${detailUrls.length} odkazov, ale v databáze je ${known} ` +
+      `  POZOR: nazbieraných ${detailUrls.length} odkazov, ale v databáze je ${inDb} ` +
         'aktívnych — vyzerá to na pokazený zber, zmiznuté inzeráty nezhasínam',
     );
   }
@@ -189,7 +232,7 @@ async function main(): Promise<void> {
 
   const limit = Number(values.limit);
   const maxPages = Number(values['max-pages']);
-  const total: RunStats = { saved: 0, skipped: 0, failed: 0 };
+  const total: RunStats = { saved: 0, skipped: 0, failed: 0, unchanged: 0 };
 
   for (const name of names) {
     const source = SOURCES[name];
@@ -201,10 +244,12 @@ async function main(): Promise<void> {
     total.saved += stats.saved;
     total.skipped += stats.skipped;
     total.failed += stats.failed;
+    total.unchanged += stats.unchanged;
   }
 
   console.log(
-    `\n${'='.repeat(60)}\nSpolu: uložených ${total.saved}, preskočených ${total.skipped}, chýb ${total.failed}`,
+    `\n${'='.repeat(60)}\nSpolu: uložených ${total.saved}, nezmenených ${total.unchanged}, ` +
+      `preskočených ${total.skipped}, chýb ${total.failed}`,
   );
 
   if (!values['skip-dedupe']) {

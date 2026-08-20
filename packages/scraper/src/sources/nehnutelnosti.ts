@@ -74,6 +74,44 @@ export function extractFlightPayload(html: string): string {
 }
 
 /**
+ * Vyreže z payloadu pole začínajúce na `"<key>":[`. Stránka so zoznamom má
+ * pod `results` celé objekty inzerátov vrátane ceny — vďaka tomu vieme
+ * zistiť, čomu sa cena zmenila, bez sťahovania detailov.
+ */
+export function extractArray(text: string, key: string): unknown[] | null {
+  const needle = `"${key}":[`;
+  const start = text.indexOf(needle);
+  if (start === -1) return null;
+
+  const open = start + needle.length - 1;
+  let depth = 0;
+  let inString = false;
+
+  for (let i = open; i < text.length; i++) {
+    const c = text[i];
+    if (inString) {
+      if (c === '\\') i++;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') inString = true;
+    else if (c === '[' || c === '{') depth++;
+    else if (c === ']' || c === '}') {
+      depth--;
+      if (depth === 0) {
+        try {
+          return JSON.parse(text.slice(open, i + 1)) as unknown[];
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Vyreže z payloadu objekt začínajúci na `"<key>":{` párovaním zátvoriek.
  * `JSON.parse` na celý payload nejde — je to prúd viacerých hodnôt, nie jeden JSON.
  */
@@ -154,6 +192,23 @@ export const nehnutelnostiSource: Source = {
 
   parseListPage(html: string): ListPageResult {
     const urls = new Set<string>();
+    const prices = new Map<string, number | null>();
+
+    // Prednostne z RSC payloadu — tam je pri každom inzeráte aj cena.
+    const results = extractArray(extractFlightPayload(html), 'results') as
+      | { advertisement?: { id?: string; sefName?: string; price?: { priceNum?: number } } }[]
+      | null;
+
+    for (const row of results ?? []) {
+      const ad = row.advertisement;
+      if (!ad?.id || !ad.sefName) continue;
+      const url = `${ORIGIN}/detail/${ad.id}/${ad.sefName}`;
+      urls.add(url);
+      prices.set(url, ad.price?.priceNum ?? null);
+    }
+
+    // Poistka, keby portál štruktúru payloadu zmenil: odkazy sa dajú vyzobať
+    // aj z HTML, len k nim nemáme cenu a detaily sa stiahnu všetky.
     const linkRe = /\/detail\/([A-Za-z0-9]+)\/([a-z0-9-]+)/g;
     let match: RegExpExecArray | null;
 
@@ -170,6 +225,7 @@ export const nehnutelnostiSource: Source = {
       // jediného nového odkazu neznamená koniec zoznamu — bez tohto sa zber
       // zastavoval po ~75 % každého okresu.
       itemsOnPage: urls.size,
+      prices,
     };
   },
 

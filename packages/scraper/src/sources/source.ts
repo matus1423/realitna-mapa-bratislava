@@ -16,6 +16,13 @@ export interface ListPageResult {
    * bez jediného zhodného inzerátu — driver to nesmie čítať ako koniec zoznamu.
    */
   itemsOnPage?: number;
+  /**
+   * Cena podľa zoznamu, kľúčom je URL detailu. Ak ju zdroj vie dať, driver
+   * preskočí sťahovanie detailov, ktorým sa cena nezmenila — z dvojhodinového
+   * behu je potom pár minút. `null` = portál cenu neuvádza (dohodou), vtedy
+   * sa detail stiahne vždy.
+   */
+  prices?: Map<string, number | null>;
 }
 
 /**

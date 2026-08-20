@@ -361,6 +361,32 @@ export function getDuplicatesOf(id: string): { source: string; sourceUrl: string
     .map((r) => ({ source: r.source, sourceUrl: r.source_url }));
 }
 
+/**
+ * Aktuálne ceny podľa URL inzerátu. Driver ich porovná s cenami zo zoznamu
+ * a detail stiahne len tomu, čo je nové alebo zdraželo/zlacnelo.
+ */
+export function getKnownPrices(source: string): Map<string, number | null> {
+  const rows = getDb()
+    .prepare<[string], { source_url: string; price: number | null }>(
+      'SELECT source_url, price FROM listings WHERE source = ? AND is_active = 1',
+    )
+    .all(source);
+  return new Map(rows.map((r) => [r.source_url, r.price]));
+}
+
+/**
+ * Označí inzeráty za stále živé bez toho, aby sa sťahoval detail.
+ * Bez tohto by ich `deactivateMissing` na konci behu zhaslo ako zmiznuté.
+ */
+export function touchListings(urls: string[], scrapedAt: string): void {
+  if (urls.length === 0) return;
+  const db = getDb();
+  const stmt = db.prepare('UPDATE listings SET scraped_at = ? WHERE source_url = ?');
+  db.transaction(() => {
+    for (const url of urls) stmt.run(scrapedAt, url);
+  })();
+}
+
 export function countListings(): { total: number; active: number; unique: number } {
   const db = getDb();
   const row = db
