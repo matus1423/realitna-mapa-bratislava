@@ -63,7 +63,8 @@ jobs:
         run: npm run export -w @rmb/scraper
 
       # Export ide na vetvu `data` s jediným commitom (force-push), takže
-      # história repa nerastie o pol megabajtu denne.
+      # história repa nerastie o pol megabajtu denne. Slúži ako záloha
+      # a na to, aby sa dalo pozrieť, čo posledný beh vyrobil.
       - name: Publikovať dáta
         run: |
           cd data/export
@@ -74,6 +75,27 @@ jobs:
           git add -A
           git commit -q -m "Dáta $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data
+
+      # Dáta idú priamo do buildu, nie na verejnú URL — repo tak môže ostať
+      # súkromné a dataset nie je nikde samostatne stiahnuteľný.
+      - name: Zostaviť mapu
+        if: env.VERCEL_TOKEN != ''
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VITE_DATA_URL: /data
+        run: |
+          cp -r data/export packages/web/public/data
+          npm run build -w @rmb/web
+
+      - name: Nasadiť na Vercel
+        if: env.VERCEL_TOKEN != ''
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx --yes vercel@latest deploy packages/web/dist \
+            --prod --yes --archive=tgz --token "$VERCEL_TOKEN" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Zhrnutie
         if: always()
