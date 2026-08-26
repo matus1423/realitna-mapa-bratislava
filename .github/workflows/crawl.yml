@@ -18,6 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 330
 
+    # zápis kvôli vetve `data`; predvolene má token len čítanie
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
 
