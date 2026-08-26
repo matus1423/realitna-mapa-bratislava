@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "scrape": "tsx --env-file-if-exists=../../.env src/index.ts"
+    "scrape": "tsx --env-file-if-exists=../../.env src/index.ts",
+    "export": "tsx --env-file-if-exists=../../.env src/export-cli.ts"
   },
   "dependencies": {
     "@rmb/db": "*",

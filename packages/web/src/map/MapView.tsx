@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Supercluster from 'supercluster';
+import { isStatic, loadMarkers } from '../data.js';
 import type { MapState } from '../state/useUrlState.js';
 import { groupByCoordinate, type MarkerGroup } from './grouping.js';
 import { createClusterIcon, createPriceIcon } from './icons.js';
@@ -39,6 +40,27 @@ function buildQuery(state: MapState, bounds: L.LatLngBounds): string {
   if (state.priceMax != null) p.set('price_max', String(state.priceMax));
   if (state.rooms.length) p.set('rooms', state.rooms.join(','));
   return p.toString();
+}
+
+/**
+ * Cena a dispozícia sa v statickom režime filtrujú u klienta — nemá to kto
+ * spraviť na serveri. Pri API prídu markery už prefiltrované.
+ */
+function applyFilters(markers: ListingMarker[], state: MapState, clientSide: boolean): ListingMarker[] {
+  if (!clientSide) return markers;
+
+  return markers.filter((m) => {
+    if (state.priceMin != null && (m.price ?? 0) < state.priceMin) return false;
+    if (state.priceMax != null && (m.price ?? Infinity) > state.priceMax) return false;
+    if (state.rooms.length > 0) {
+      const rooms = m.rooms;
+      if (rooms == null) return false;
+      // "5+ izb" posielame ako 5 a berieme aj väčšie
+      const ok = state.rooms.some((r) => (r === 5 ? rooms >= 5 : rooms === r));
+      if (!ok) return false;
+    }
+    return true;
+  });
 }
 
 export function MapView({
@@ -102,11 +124,23 @@ export function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --- načítanie markerov pri zmene výrezu alebo filtrov ---------------------
+  // --- načítanie markerov ----------------------------------------------------
   useEffect(() => {
     if (!view.bounds) return;
 
     const controller = new AbortController();
+
+    // V statickom režime je celé mesto v jednom súbore: stiahne sa raz
+    // a bbox ani filtre už sieť neriešia.
+    if (isStatic) {
+      loadMarkers(state.dealType, controller.signal)
+        .then(setMarkers)
+        .catch((err: unknown) => {
+          if ((err as Error).name !== 'AbortError') console.error(err);
+        });
+      return () => controller.abort();
+    }
+
     // debounce: počas ťahania mapy by inak odišiel request na každý medzikrok
     const timer = setTimeout(() => {
       const url = `/api/listings?${buildQuery(state, view.bounds!)}`;
@@ -115,9 +149,7 @@ export function MapView({
           if (!r.ok) throw new Error(`API vrátilo ${r.status}`);
           return r.json() as Promise<{ markers: ListingMarker[] }>;
         })
-        .then((data) => {
-          setMarkers(data.markers);
-        })
+        .then((data) => setMarkers(data.markers))
         .catch((err: unknown) => {
           if ((err as Error).name !== 'AbortError') console.error(err);
         });
@@ -134,23 +166,24 @@ export function MapView({
     state.priceMin,
     state.priceMax,
     state.rooms,
-    onCountChange,
   ]);
 
   // počet vo výreze hlásime až po filtri, nech sedí s tým, čo je vidieť
   useEffect(() => {
-    let visible = onlySaved ? markers.filter((m) => savedIds.has(m.id)) : markers;
+    let visible = applyFilters(markers, state, isStatic);
+    if (onlySaved) visible = visible.filter((m) => savedIds.has(m.id));
     if (state.polygon.length >= 3) {
       visible = visible.filter((m) => isInside([m.lat, m.lng], state.polygon));
     }
     onCountChange(visible.length);
-  }, [markers, onlySaved, savedIds, state.polygon, onCountChange]);
+  }, [markers, onlySaved, savedIds, state, onCountChange]);
 
   // --- clustering ------------------------------------------------------------
   const index = useMemo(() => {
     // "len uložené" filtrujeme na klientovi — ID uložených sú v prehliadači
     // a posielať ich na server by znamenalo tlačiť tam osobný zoznam
-    let visible = onlySaved ? markers.filter((m) => savedIds.has(m.id)) : markers;
+    let visible = applyFilters(markers, state, isStatic);
+    if (onlySaved) visible = visible.filter((m) => savedIds.has(m.id));
     if (state.polygon.length >= 3) {
       visible = visible.filter((m) => isInside([m.lat, m.lng], state.polygon));
     }
@@ -169,7 +202,7 @@ export function MapView({
       })),
     );
     return sc;
-  }, [markers, onlySaved, savedIds, state.polygon]);
+  }, [markers, onlySaved, savedIds, state]);
 
   // --- kreslenie oblasti ------------------------------------------------------
   useEffect(() => {

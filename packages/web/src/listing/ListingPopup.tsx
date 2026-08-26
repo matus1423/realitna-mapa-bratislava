@@ -1,4 +1,3 @@
-import type { Listing } from '@rmb/shared';
 import { useEffect, useState } from 'react';
 import {
   daysLabel,
@@ -10,12 +9,8 @@ import {
   yieldLabel,
   yieldTone,
 } from '../format.js';
+import { loadDetails, type ListingDetail } from '../data.js';
 import { PriceHistory } from './PriceHistory.js';
-
-/** Inzerát doplnený o portály, na ktorých ten istý byt visí tiež. */
-interface ListingWithSources extends Listing {
-  alsoOn?: { source: string; sourceUrl: string }[];
-}
 
 const SOURCE_LABELS: Record<string, string> = {
   nehnutelnosti: 'nehnutelnosti.sk',
@@ -39,7 +34,7 @@ interface Props {
  * pre mapu popisy ani fotky nie sú, a ani tam nemajú čo robiť.
  */
 export function ListingPopup({ ids, onClose, isSaved, onToggleSave }: Props) {
-  const [listings, setListings] = useState<ListingWithSources[] | null>(null);
+  const [listings, setListings] = useState<ListingDetail[] | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
 
@@ -49,14 +44,11 @@ export function ListingPopup({ ids, onClose, isSaved, onToggleSave }: Props) {
     setPhotoIndex(0);
 
     const controller = new AbortController();
-    fetch(`/api/listings/by-id?ids=${ids.join(',')}`, { signal: controller.signal })
-      .then((r) => r.json() as Promise<{ listings: ListingWithSources[] }>)
+    loadDetails(ids, controller.signal)
       // od najlacnejšieho — na pilulke je cena najlacnejšieho z adresy,
       // takže prvá záložka musí ukázať práve ten inzerát
-      .then((data) =>
-        setListings(
-          [...data.listings].sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity)),
-        ),
+      .then((found) =>
+        setListings([...found].sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity))),
       )
       .catch((err: unknown) => {
         if ((err as Error).name !== 'AbortError') console.error(err);
@@ -195,7 +187,7 @@ export function ListingPopup({ ids, onClose, isSaved, onToggleSave }: Props) {
           </div>
         )}
 
-        <PriceHistory listingId={listing.id} />
+        <PriceHistory points={listing.priceHistory} />
 
         {listing.locationRadius != null && listing.locationRadius >= 1000 && (
           <div className="card-warning">

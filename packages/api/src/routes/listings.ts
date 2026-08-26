@@ -3,7 +3,6 @@ import {
   countListings,
   findListingsInBBox,
   findMarkersInBBox,
-  getDuplicatesOf,
   getDuplicatesFor,
   getListingsByIds,
   getPriceHistory,
@@ -91,10 +90,18 @@ export function registerListingRoutes(app: FastifyInstance): void {
     if (ids.length === 0) return reply.code(400).send({ error: 'Chýba parameter ids' });
     if (ids.length > 100) return reply.code(400).send({ error: 'Maximálne 100 ID naraz' });
 
-    const listings = getListingsByIds(ids).map((listing) => ({
+    const found = getListingsByIds(ids);
+    const duplicates = getDuplicatesFor(found.map((listing) => listing.id));
+
+    // Tvar musí sedieť so statickým exportom, inak by sa karta správala
+    // inak vo vývoji a inak v nasadení.
+    const listings = found.map((listing) => ({
       ...listing,
       // ten istý byt býva na viacerých portáloch; nech je z karty vidieť kde
-      alsoOn: getDuplicatesOf(listing.id),
+      alsoOn: duplicates
+        .filter((dup) => dup.canonicalId === listing.id)
+        .map(({ source, sourceUrl }) => ({ source, sourceUrl })),
+      priceHistory: getPriceHistory(listing.id),
     }));
 
     return reply.send({ listings });

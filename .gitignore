@@ -8,3 +8,6 @@ data/*.db
 data/*.db-journal
 data/cache/
 data/logs/
+
+# statický export sa generuje pri každom behu
+data/export/

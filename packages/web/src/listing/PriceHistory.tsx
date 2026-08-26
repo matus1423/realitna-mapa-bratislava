@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { fullPrice } from '../format.js';
 
 interface Point {
@@ -13,24 +12,8 @@ interface Point {
  * Zobrazí sa len pri dvoch a viac záznamoch. Pri jednom by to bola vodorovná
  * čiara, ktorá predstiera informáciu — vieme len to, že sme cenu raz videli.
  */
-export function PriceHistory({ listingId }: { listingId: string }) {
-  const [points, setPoints] = useState<Point[] | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch(`/api/listings/${encodeURIComponent(listingId)}/price-history`, {
-      signal: controller.signal,
-    })
-      .then((r) => r.json() as Promise<{ history: Point[] }>)
-      .then((data) => setPoints(data.history))
-      .catch((err: unknown) => {
-        if ((err as Error).name !== 'AbortError') console.error(err);
-      });
-
-    return () => controller.abort();
-  }, [listingId]);
-
-  if (!points || points.length < 2) return null;
+export function PriceHistory({ points }: { points: Point[] }) {
+  if (points.length < 2) return null;
 
   const prices = points.map((p) => p.price);
   const min = Math.min(...prices);

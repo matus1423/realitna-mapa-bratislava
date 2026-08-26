@@ -1,0 +1,83 @@
+name: Zber inzerátov
+
+on:
+  schedule:
+    # 03:00 UTC = 5:00 letného času. V zime to vyjde na 4:00 — GitHub cron
+    # nepozná časové pásma a kvôli hodine to nestojí za dva rozvrhy.
+    - cron: '0 3 * * *'
+    # topreality si v robots.txt pýta 6 s na request, takže beží raz týždenne
+    - cron: '30 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      sources:
+        description: 'Zoznam zdrojov (prázdne = podľa rozvrhu)'
+        required: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Databáza má 27 MB a do gitu nepatrí — každodenný commit by z histórie
+      # spravil desiatky gigabajtov. Cache ju prenesie medzi behmi; ak vypadne,
+      # crawl si ju naplní odznova, len to potrvá dlhšie.
+      - name: Načítať databázu z cache
+        uses: actions/cache@v4
+        with:
+          path: data/listings.db
+          key: listings-db-${{ github.run_id }}
+          restore-keys: listings-db-
+
+      - name: Vybrať zdroje
+        id: pick
+        run: |
+          if [ -n "${{ inputs.sources }}" ]; then
+            echo "sources=${{ inputs.sources }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "30 3 * * 0" ]; then
+            echo "sources=topreality" >> "$GITHUB_OUTPUT"
+          else
+            echo "sources=nehnutelnosti,zoznamrealit,bazos" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Zber
+        env:
+          SCRAPE_USE_CACHE: '0'
+          SCRAPE_DELAY_MS: '1500'
+        run: npm run scrape -- --source "${{ steps.pick.outputs.sources }}" --limit 20000 --max-pages 90
+
+      - name: Statický export
+        run: npm run export -w @rmb/scraper
+
+      # Export ide na vetvu `data` s jediným commitom (force-push), takže
+      # história repa nerastie o pol megabajtu denne.
+      - name: Publikovať dáta
+        run: |
+          cd data/export
+          git init -q
+          git checkout -q -b data
+          git config user.name "crawl bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Dáta $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data
+
+      - name: Zhrnutie
+        if: always()
+        run: |
+          {
+            echo "### Zber: ${{ steps.pick.outputs.sources }}"
+            echo ''
+            echo '```'
+            tail -12 data/logs/*.log 2>/dev/null || echo 'bez logu'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
