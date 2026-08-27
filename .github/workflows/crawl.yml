@@ -87,15 +87,21 @@ jobs:
           cp -r data/export packages/web/public/data
           npm run build -w @rmb/web
 
+      # `link --yes --project` je idempotentné: pri prvom behu projekt založí,
+      # pri ďalších sa naň len napojí. Vďaka tomu netreba nič klikať dopredu
+      # ani nikam ukladať ID projektu.
       - name: Nasadiť na Vercel
         if: env.VERCEL_TOKEN != ''
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          npx --yes vercel@latest deploy packages/web/dist \
-            --prod --yes --archive=tgz --token "$VERCEL_TOKEN" >> "$GITHUB_STEP_SUMMARY"
+          npx --yes vercel@latest link --yes \
+            --project realitna-mapa-bratislava --token "$VERCEL_TOKEN"
+
+          url=$(npx --yes vercel@latest deploy packages/web/dist \
+            --prod --yes --archive=tgz --token "$VERCEL_TOKEN")
+
+          echo "Mapa nasadená: $url" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Zhrnutie
         if: always()
