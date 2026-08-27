@@ -84,6 +84,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VITE_DATA_URL: /data
         run: |
+          mkdir -p packages/web/public
           cp -r data/export packages/web/public/data
           npm run build -w @rmb/web
 
