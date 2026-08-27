@@ -96,10 +96,13 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
+          # Linkovať aj deployovať treba z toho istého priečinka, inak Vercel
+          # odvodí názov projektu z posledného segmentu cesty a založí "dist".
+          cd packages/web/dist
           npx --yes vercel@latest link --yes \
             --project realitna-mapa-bratislava --token "$VERCEL_TOKEN"
 
-          url=$(npx --yes vercel@latest deploy packages/web/dist \
+          url=$(npx --yes vercel@latest deploy \
             --prod --yes --archive=tgz --token "$VERCEL_TOKEN")
 
           echo "Mapa nasadená: $url" >> "$GITHUB_STEP_SUMMARY"
