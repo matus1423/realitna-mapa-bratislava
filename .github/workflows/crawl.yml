@@ -88,21 +88,26 @@ jobs:
           cp -r data/export packages/web/public/data
           npm run build -w @rmb/web
 
+      # Vercelu posielame hotový build cez Build Output API. Bez toho sa ho
+      # snaží stavať sám: spustí `npm install` nad priečinkom s výsledkom
+      # buildu, kde žiadny package.json nie je, a padne.
+      #
       # `link --yes --project` je idempotentné: pri prvom behu projekt založí,
-      # pri ďalších sa naň len napojí. Vďaka tomu netreba nič klikať dopredu
-      # ani nikam ukladať ID projektu.
+      # pri ďalších sa naň len napojí, takže netreba nič klikať dopredu.
       - name: Nasadiť na Vercel
         if: env.VERCEL_TOKEN != ''
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          # Linkovať aj deployovať treba z toho istého priečinka, inak Vercel
-          # odvodí názov projektu z posledného segmentu cesty a založí "dist".
-          cd packages/web/dist
+          mkdir -p deploy/.vercel/output/static
+          cp -r packages/web/dist/. deploy/.vercel/output/static/
+          echo '{"version":3}' > deploy/.vercel/output/config.json
+
+          cd deploy
           npx --yes vercel@latest link --yes \
             --project realitna-mapa-bratislava --token "$VERCEL_TOKEN"
 
-          url=$(npx --yes vercel@latest deploy \
+          url=$(npx --yes vercel@latest deploy --prebuilt \
             --prod --yes --archive=tgz --token "$VERCEL_TOKEN")
 
           echo "Mapa nasadená: $url" >> "$GITHUB_STEP_SUMMARY"
