@@ -115,7 +115,14 @@ export function MapView({
     map.on('moveend', sync);
     sync();
 
+    // Ak sa mapa vytvorí skôr, než kontajner dostane rozmery (pomalé fonty,
+    // skrytá záložka), Leaflet si zapamätá nulovú veľkosť a ostane z nej
+    // malý štvorec v rohu. ResizeObserver ho na správnu veľkosť prepočíta.
+    const resize = new ResizeObserver(() => map.invalidateSize());
+    resize.observe(containerRef.current);
+
     return () => {
+      resize.disconnect();
       map.off('moveend', sync);
       map.remove();
       mapRef.current = null;
