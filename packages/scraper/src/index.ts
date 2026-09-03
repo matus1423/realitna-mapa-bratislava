@@ -8,6 +8,7 @@ import {
   upsertListing,
 } from '@rmb/db';
 import { dedupe } from './dedupe.js';
+import { shouldDeactivate } from './deactivation.js';
 import { computePriceIndex } from './price-index.js';
 import { computeRentalYield } from './rental-yield.js';
 import { fetchHtml, setMinDelay } from './http.js';
@@ -184,30 +185,20 @@ async function scrapeSource(source: Source, limit: number, maxPages: number): Pr
       `preskočených ${stats.skipped}, chýb ${stats.failed}`,
   );
 
-  // Zhasnúť nevidené sa dá len vtedy, keď sme zdroj naozaj prešli celý.
-  // Po behu s malým --limit by to zhaslo všetko, na čo sa nedostalo.
-  //
-  // Druhá poistka je proti pokazenému zberu: keď sa rozbije stránkovanie,
-  // beh vyzerá ako úspešný, len nazbiera zlomok odkazov — a bez tejto
-  // kontroly by zhasol celý zdroj. Raz sa to už stalo, 795 platných bytov.
   const inDb = countBySource().find((row) => row.source === source.name)?.total ?? 0;
-  const collectedEnough = inDb === 0 || detailUrls.length >= inDb * 0.5;
-  const wasFullRun =
-    detailUrls.length < limit &&
-    stats.failed < Math.max(toFetch.length * 0.1, 1) &&
-    collectedEnough;
+  const verdict = shouldDeactivate({
+    collected: detailUrls.length,
+    limit,
+    fetched: toFetch.length,
+    failed: stats.failed,
+    inDb,
+  });
 
-  if (!collectedEnough) {
-    console.log(
-      `  POZOR: nazbieraných ${detailUrls.length} odkazov, ale v databáze je ${inDb} ` +
-        'aktívnych — vyzerá to na pokazený zber, zmiznuté inzeráty nezhasínam',
-    );
-  }
-  if (wasFullRun) {
+  if (verdict.deactivate) {
     const gone = deactivateMissing(source.name, startedAt);
     if (gone > 0) console.log(`  ${gone} inzerátov už na portáli nie je — označené za neaktívne`);
   } else {
-    console.log('  (beh bol obmedzený limitom alebo mal veľa chýb — zmiznuté inzeráty nezhasínam)');
+    console.log(`  zmiznuté inzeráty nezhasínam: ${verdict.reason}`);
   }
 
   return stats;

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "scrape": "tsx --env-file-if-exists=../../.env src/index.ts",
-    "export": "tsx --env-file-if-exists=../../.env src/export-cli.ts"
+    "export": "tsx --env-file-if-exists=../../.env src/export-cli.ts",
+    "health": "tsx --env-file-if-exists=../../.env src/health-cli.ts"
   },
   "dependencies": {
     "@rmb/db": "*",

@@ -13,7 +13,7 @@ const cache = new Map<string, RobotsRules>();
  * čo je pre nás správne, lebo sa nevydávame za nikoho iného.
  * Podporuje `*` a `$` v pravidlách, `Crawl-delay` aj `Request-rate`.
  */
-function parseRobots(text: string): RobotsRules {
+export function parseRobots(text: string): RobotsRules {
   const rules: RobotsRules = { disallow: [], allow: [], crawlDelayMs: null };
   let inStarGroup = false;
 

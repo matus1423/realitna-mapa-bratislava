@@ -6,7 +6,7 @@ import type {
   PropertyType,
   ScrapedListing,
 } from '@rmb/shared';
-import { isUnavailableTitle } from '@rmb/shared';
+import { isDemandTitle, isUnavailableTitle } from '@rmb/shared';
 import { getDb } from './client.js';
 
 interface ListingRow {
@@ -144,7 +144,8 @@ export function upsertListing(listing: ScrapedListing): void {
       hasElevator: listing.hasElevator == null ? null : listing.hasElevator ? 1 : 0,
       imageUrls: JSON.stringify(listing.imageUrls),
       // odvodené z názvu, takže to nemusí riešiť každý parser zvlášť
-      isUnavailable: isUnavailableTitle(listing.title, listing.dealType) ? 1 : 0,
+      isUnavailable:
+        isUnavailableTitle(listing.title, listing.dealType) || isDemandTitle(listing.title) ? 1 : 0,
     });
 
     if (listing.price != null) {

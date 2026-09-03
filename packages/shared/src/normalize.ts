@@ -90,6 +90,16 @@ export function isInBratislavaArea(lat: number, lng: number): boolean {
  * hviezdičkami či zátvorkami. Preto sa diakritika najprv zhadzuje a hľadá
  * sa slovný základ, nie presný tvar.
  */
+/**
+ * Je to dopyt, nie ponuka? Realitky inzerujú aj "Hľadáme pre klienta 3-izbový
+ * byt do 450 000 €" a portál to zaradí medzi predaje aj s cenou, takže sa to
+ * na mape tvári ako byt na predaj. Kúpiť sa to nedá a skresľuje to medián.
+ */
+export function isDemandTitle(title: string): boolean {
+  const normalized = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trimStart();
+  return /^(hladam|hladame|kupim|kupime|vymena|vymenim|pre klienta|hladany)/.test(normalized);
+}
+
 export function isUnavailableTitle(title: string, dealType: DealType): boolean {
   const normalized = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 

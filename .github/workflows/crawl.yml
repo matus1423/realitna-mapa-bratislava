@@ -53,11 +53,22 @@ jobs:
             echo "sources=nehnutelnosti,zoznamrealit,bazos" >> "$GITHUB_OUTPUT"
           fi
 
+      # Testy pred zberom: pokazený parser nemá čo prepisovať databázu
+      # ani nasadzovať mapu.
+      - name: Testy
+        run: npm test
+
       - name: Zber
         env:
           SCRAPE_USE_CACHE: '0'
           SCRAPE_DELAY_MS: '1500'
         run: npm run scrape -- --source "${{ steps.pick.outputs.sources }}" --limit 20000 --max-pages 90
+
+      # Kontrola, či výsledok dáva zmysel. Testy overujú kód; toto overuje
+      # dáta — teda to, čo sa pokazí, keď portál prekope HTML bez toho, aby
+      # sme zmenili jediný riadok.
+      - name: Kontrola dát
+        run: npm run health -w @rmb/scraper
 
       - name: Statický export
         run: npm run export -w @rmb/scraper
