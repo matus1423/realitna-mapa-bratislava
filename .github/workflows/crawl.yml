@@ -36,7 +36,7 @@ jobs:
       # spravil desiatky gigabajtov. Cache ju prenesie medzi behmi; ak vypadne,
       # crawl si ju naplní odznova, len to potrvá dlhšie.
       - name: Načítať databázu z cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: data/listings.db
           key: listings-db-${{ github.run_id }}
@@ -63,6 +63,17 @@ jobs:
           SCRAPE_USE_CACHE: '0'
           SCRAPE_DELAY_MS: '1500'
         run: npm run scrape -- --source "${{ steps.pick.outputs.sources }}" --limit 20000 --max-pages 90
+
+      # Uložiť hneď po zbere a bez ohľadu na to, čo príde ďalej. Kým bola
+      # databáza na `cache@v4`, jej záverečný krok sa pri páde behu nespustil
+      # a odviedená práca sa zahodila — štyri noci zberu skončili v koši,
+      # lebo padla až kontrola dát za ním.
+      - name: Uložiť databázu do cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/listings.db
+          key: listings-db-${{ github.run_id }}
 
       # Kontrola, či výsledok dáva zmysel. Testy overujú kód; toto overuje
       # dáta — teda to, čo sa pokazí, keď portál prekope HTML bez toho, aby
