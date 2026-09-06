@@ -6,6 +6,9 @@ dist/
 # dáta a HTML cache sa neverzujú
 data/*.db
 data/*.db-journal
+# SQLite v režime WAL si vedľa databázy drží ešte dva pomocné súbory
+data/*.db-shm
+data/*.db-wal
 data/cache/
 data/logs/
 

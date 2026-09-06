@@ -1,16 +1,32 @@
 import { countBySource, countListings, getDb } from '@rmb/db';
+import { isDemandTitle } from '@rmb/shared';
 
 /**
  * Kontrola po zbere. Testy overujú, že kód robí, čo má; toto overuje, že
  * výsledok dáva zmysel — teda veci, ktoré sa pokazia bez zmeny jediného
  * riadku: portál prekope HTML, zmení stránkovanie alebo nás začne blokovať.
  *
- * Zámerne padá nahlas. Tichý beh, ktorý vyrobí prázdnu mapu, je horší než
- * beh, ktorý zakričí.
+ * Nálezy sú v dvoch úrovniach, a je to podstatný rozdiel:
+ *
+ *   `problems`  — dáta sú rozbité, nasadiť ich by bolo horšie než nechať
+ *                 na mape včerajšie. Zhodí beh.
+ *   `warnings`  — stojí to za pozornosť, ale mapa je použiteľná. Vypíše sa
+ *                 a pokračuje sa.
+ *
+ * Pôvodne bolo všetko zhadzujúce a ukázalo sa to ako chyba: pár dopytov
+ * ("hľadám byt") zablokovalo nasadenie na štyri dni a mapa medzitým ostala
+ * viac neaktuálna, než keby sa tie dopyty jednoducho zobrazili.
  */
-export function healthCheck(): { problems: string[]; summary: string[] } {
+export interface HealthReport {
+  problems: string[];
+  warnings: string[];
+  summary: string[];
+}
+
+export function healthCheck(): HealthReport {
   const db = getDb();
   const problems: string[] = [];
+  const warnings: string[] = [];
   const summary: string[] = [];
 
   const counts = countListings();
@@ -29,7 +45,7 @@ export function healthCheck(): { problems: string[]; summary: string[] } {
       'SELECT COUNT(*) AS c FROM listings WHERE is_active = 1 AND (lat IS NULL OR lng IS NULL)',
     )
     .get()!.c;
-  if (bezSuradnic > 0) problems.push(`${bezSuradnic} inzerátov bez súradníc`);
+  if (bezSuradnic > 0) warnings.push(`${bezSuradnic} inzerátov bez súradníc`);
 
   const mimoBratislavy = db
     .prepare<[], { c: number }>(
@@ -37,7 +53,7 @@ export function healthCheck(): { problems: string[]; summary: string[] } {
         AND (lat NOT BETWEEN 48.0 AND 48.35 OR lng NOT BETWEEN 16.85 AND 17.4)`,
     )
     .get()!.c;
-  if (mimoBratislavy > 0) problems.push(`${mimoBratislavy} inzerátov mimo Bratislavy`);
+  if (mimoBratislavy > 0) warnings.push(`${mimoBratislavy} inzerátov mimo Bratislavy`);
 
   // Chýbajúca cena je bežná ("dohodou"), ale keď ju nemá väčšina, rozbil sa parser.
   const bezCeny = db
@@ -78,15 +94,17 @@ export function healthCheck(): { problems: string[]; summary: string[] } {
     );
   }
 
-  const dopyty = db
-    .prepare<[], { c: number }>(
-      `SELECT COUNT(*) AS c FROM listings
-        WHERE is_active = 1 AND duplicate_of IS NULL AND is_unavailable = 0
-          AND (title LIKE 'Hľadám%' OR title LIKE 'Hľadáme%' OR title LIKE 'Kúpim%'
-               OR title LIKE 'Výmena%')`,
+  // Zámerne cez tú istú funkciu, akou sa dopyty skrývajú z mapy. Keď to bolo
+  // opísané zvlášť v SQL, obe pravidlá sa rozišli a kontrola hlásila inzeráty,
+  // ktoré appka za dopyt nepovažovala — čiže nález, ktorý sa nedal opraviť.
+  const naMape = db
+    .prepare<[], { title: string }>(
+      `SELECT title FROM listings
+        WHERE is_active = 1 AND duplicate_of IS NULL AND is_unavailable = 0`,
     )
-    .get()!.c;
-  if (dopyty > 0) problems.push(`${dopyty} dopytov ("hľadám byt") sa tvári ako ponuka`);
+    .all();
+  const dopyty = naMape.filter((row) => isDemandTitle(row.title)).length;
+  if (dopyty > 0) warnings.push(`${dopyty} dopytov ("hľadám byt") sa tvári ako ponuka`);
 
   const bezIndexu = db
     .prepare<[], { c: number; spolu: number }>(
@@ -98,5 +116,5 @@ export function healthCheck(): { problems: string[]; summary: string[] } {
     problems.push(`${bezIndexu.c} inzerátov bez indexu cien — prepočet zrejme nezbehol`);
   }
 
-  return { problems, summary };
+  return { problems, warnings, summary };
 }

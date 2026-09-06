@@ -394,23 +394,65 @@ export function countListings(): { total: number; active: number; unique: number
     .prepare<[], { total: number; active: number; unique: number }>(
       `SELECT COUNT(*) AS total,
               SUM(is_active) AS active,
-              SUM(is_active = 1 AND duplicate_of IS NULL) AS "unique"
+              SUM(is_active = 1 AND duplicate_of IS NULL AND is_unavailable = 0) AS "unique"
          FROM listings`,
     )
     .get();
   return { total: row?.total ?? 0, active: row?.active ?? 0, unique: row?.unique ?? 0 };
 }
 
-/** Rozpad počtu podľa portálu — na kontrolu, koľko ktorý zdroj reálne pridal. */
+/**
+ * Rozpad počtu podľa portálu — na kontrolu, koľko ktorý zdroj reálne pridal.
+ * `unique` je to, čo sa dostane na mapu, teda bez duplicít, rezervovaných
+ * a dopytov — rovnaká podmienka, akú používa statický export.
+ */
 export function countBySource(): { source: string; total: number; unique: number }[] {
   const db = getDb();
   return db
     .prepare<[], { source: string; total: number; unique: number }>(
       `SELECT source,
               COUNT(*) AS total,
-              SUM(duplicate_of IS NULL) AS "unique"
+              SUM(duplicate_of IS NULL AND is_unavailable = 0) AS "unique"
          FROM listings WHERE is_active = 1
         GROUP BY source ORDER BY total DESC`,
     )
     .all();
+}
+
+/**
+ * Prepočíta príznak `is_unavailable` nad všetkými uloženými názvami.
+ *
+ * Pri zbere ho nastavuje `upsertListing`, lenže nezmeneným inzerátom sa detail
+ * nesťahuje — len sa im posunie `scraped_at`. Inzerát uložený ešte pred
+ * sprísnením pravidla by sa tak už nikdy neprehodnotil a ostal by na mape
+ * navždy. Preto po každom zbere prejdeme to, čo v databáze naozaj je,
+ * namiesto toho, čo práve pritieklo zo siete.
+ */
+export function refreshUnavailableFlags(): number {
+  const db = getDb();
+
+  const rows = db
+    .prepare<[], { id: string; title: string; deal_type: string; is_unavailable: number }>(
+      'SELECT id, title, deal_type, is_unavailable FROM listings',
+    )
+    .all();
+
+  const update = db.prepare('UPDATE listings SET is_unavailable = ? WHERE id = ?');
+  let changed = 0;
+
+  db.transaction(() => {
+    for (const row of rows) {
+      const flag =
+        isUnavailableTitle(row.title, row.deal_type as ScrapedListing['dealType']) ||
+        isDemandTitle(row.title)
+          ? 1
+          : 0;
+      if (flag !== row.is_unavailable) {
+        update.run(flag, row.id);
+        changed++;
+      }
+    }
+  })();
+
+  return changed;
 }

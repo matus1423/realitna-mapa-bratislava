@@ -4,6 +4,7 @@ import {
   countListings,
   deactivateMissing,
   getKnownPrices,
+  refreshUnavailableFlags,
   touchListings,
   upsertListing,
 } from '@rmb/db';
@@ -242,6 +243,13 @@ async function main(): Promise<void> {
     `\n${'='.repeat(60)}\nSpolu: uložených ${total.saved}, nezmenených ${total.unchanged}, ` +
       `preskočených ${total.skipped}, chýb ${total.failed}`,
   );
+
+  // Pred deduplikáciou aj indexom: rezervované byty a dopyty nemajú čo
+  // ovplyvňovať medián okolia ani sa párovať ako duplicity.
+  const reflagged = refreshUnavailableFlags();
+  if (reflagged > 0) {
+    console.log(`Príznak dostupnosti prepočítaný: ${reflagged} inzerátov zmenilo stav`);
+  }
 
   if (!values['skip-dedupe']) {
     const result = dedupe();
