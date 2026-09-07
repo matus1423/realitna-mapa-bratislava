@@ -110,8 +110,17 @@ body {
   gap: 8px;
 }
 
-.chip-grid.rooms {
+.chip-grid.rooms,
+.chip-grid.ratios {
   grid-template-columns: repeat(3, 1fr);
+}
+
+/* Výhrada k filtru podľa okolia — má sa dať prehliadnuť, nie prehliadať. */
+.panel-note {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted, #64748b);
 }
 
 .chip {

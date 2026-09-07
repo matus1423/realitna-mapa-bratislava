@@ -15,6 +15,8 @@ export interface MapState {
   priceMin?: number;
   priceMax?: number;
   rooms: number[];
+  /** Horná hranica pomeru ceny k okoliu; 0,9 = aspoň o 10 % lacnejšie. */
+  maxPriceRatio?: number;
   /** Vyznačená oblasť; prázdne pole = bez obmedzenia. */
   polygon: Point[];
 }
@@ -51,6 +53,7 @@ function readUrl(): MapState {
     propertyTypes: propertyTypes?.length ? propertyTypes : DEFAULTS.propertyTypes,
     priceMin: num('price_min'),
     priceMax: num('price_max'),
+    maxPriceRatio: num('max_ratio'),
     polygon: decodePolygon(p.get('poly')),
     rooms:
       p
@@ -70,6 +73,7 @@ function writeUrl(state: MapState): void {
   p.set('zoom', String(Math.round(state.zoom)));
   if (state.priceMin != null) p.set('price_min', String(state.priceMin));
   if (state.priceMax != null) p.set('price_max', String(state.priceMax));
+  if (state.maxPriceRatio != null) p.set('max_ratio', String(state.maxPriceRatio));
   if (state.rooms.length) p.set('rooms', state.rooms.join(','));
   if (state.polygon.length >= 3) p.set('poly', encodePolygon(state.polygon));
 

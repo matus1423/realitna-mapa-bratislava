@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import { decodePolygon, encodePolygon, isInside, type Point } from '../src/map/polygon.js';
 import { compactPrice, daysOnMarket, priceRatioLabel, yieldTone } from '../src/format.js';
 import { groupByCoordinate } from '../src/map/grouping.js';
+import { applyFilters, RATIO_OPTIONS } from '../src/map/filter.js';
+import type { MapState } from '../src/state/useUrlState.js';
 
 const STARE_MESTO: Point[] = [
   [48.155, 17.100], [48.155, 17.125], [48.140, 17.125], [48.140, 17.100],
@@ -77,4 +79,58 @@ test('dĺžka v ponuke: dátum z portálu je presný, prvé videnie len približ
 
   const zPrvehoVidenia = daysOnMarket(null, pred30dnami)!;
   assert.equal(zPrvehoVidenia.exact, false);
+});
+
+const STAV: MapState = {
+  lat: 48.15, lon: 17.11, zoom: 13,
+  dealType: 'predaj', propertyTypes: ['byt'], rooms: [], polygon: [],
+};
+
+let m = 0;
+function marker(priceRatio: number | null, over: Record<string, unknown> = {}) {
+  m += 1;
+  return {
+    id: `m${m}`, lat: 48.15, lng: 17.11, price: 300_000,
+    propertyType: 'byt' as const, rooms: 3,
+    priceDiff: null, isNew: false, imprecise: false, priceRatio,
+    ...over,
+  };
+}
+
+test('filter podľa okolia: nechá len byty dosť pod mediánom', () => {
+  const markers = [marker(0.75), marker(0.88), marker(1.0), marker(1.3)];
+  const found = applyFilters(markers, { ...STAV, maxPriceRatio: 0.9 }, true);
+
+  assert.deepEqual(found.map((x) => x.priceRatio), [0.75, 0.88]);
+});
+
+/**
+ * Byt bez indexu nemá s čím porovnávať — susedov v okolí je málo. Keď sa
+ * niekto pýta na výhodné ceny, "nevieme" nie je odpoveď, ktorú chce na mape.
+ */
+test('filter podľa okolia: byt bez indexu sa medzi výhodné nezaráta', () => {
+  const found = applyFilters([marker(null), marker(0.7)], { ...STAV, maxPriceRatio: 0.9 }, true);
+
+  assert.equal(found.length, 1);
+  assert.equal(found[0]?.priceRatio, 0.7);
+});
+
+test('filter podľa okolia: bez zapnutého filtra ostávajú aj byty bez indexu', () => {
+  const found = applyFilters([marker(null), marker(1.4)], STAV, true);
+  assert.equal(found.length, 2);
+});
+
+/**
+ * Pomer je priamo v markeri, takže ho vieme použiť aj na dátach z API,
+ * kde ostatné filtre rieši server.
+ */
+test('filter podľa okolia: platí aj v režime s API', () => {
+  const found = applyFilters([marker(0.6), marker(1.2)], { ...STAV, maxPriceRatio: 0.8 }, false);
+  assert.equal(found.length, 1);
+});
+
+test('filter podľa okolia: prahy sú zoradené od najmiernejšieho', () => {
+  const values = RATIO_OPTIONS.map((o) => o.value);
+  assert.deepEqual(values, [...values].sort((a, b) => b - a));
+  assert.ok(values.every((v) => v < 1), 'každý prah musí byť pod úrovňou okolia');
 });

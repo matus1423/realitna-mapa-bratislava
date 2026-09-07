@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Supercluster from 'supercluster';
 import { isStatic, loadMarkers } from '../data.js';
+import { applyFilters } from './filter.js';
 import type { MapState } from '../state/useUrlState.js';
 import { groupByCoordinate, type MarkerGroup } from './grouping.js';
 import { createClusterIcon, createPriceIcon } from './icons.js';
@@ -40,27 +41,6 @@ function buildQuery(state: MapState, bounds: L.LatLngBounds): string {
   if (state.priceMax != null) p.set('price_max', String(state.priceMax));
   if (state.rooms.length) p.set('rooms', state.rooms.join(','));
   return p.toString();
-}
-
-/**
- * Cena a dispozícia sa v statickom režime filtrujú u klienta — nemá to kto
- * spraviť na serveri. Pri API prídu markery už prefiltrované.
- */
-function applyFilters(markers: ListingMarker[], state: MapState, clientSide: boolean): ListingMarker[] {
-  if (!clientSide) return markers;
-
-  return markers.filter((m) => {
-    if (state.priceMin != null && (m.price ?? 0) < state.priceMin) return false;
-    if (state.priceMax != null && (m.price ?? Infinity) > state.priceMax) return false;
-    if (state.rooms.length > 0) {
-      const rooms = m.rooms;
-      if (rooms == null) return false;
-      // "5+ izb" posielame ako 5 a berieme aj väčšie
-      const ok = state.rooms.some((r) => (r === 5 ? rooms >= 5 : rooms === r));
-      if (!ok) return false;
-    }
-    return true;
-  });
 }
 
 export function MapView({

@@ -1,4 +1,5 @@
 import type { DealType } from '@rmb/shared';
+import { RATIO_OPTIONS } from '../map/filter.js';
 import type { MapState } from '../state/useUrlState.js';
 
 interface Props {
@@ -85,6 +86,33 @@ export function FilterPanel({
         </div>
       </div>
 
+      <div className="panel-section">
+        <label className="panel-label">Cena vzhľadom na okolie</label>
+        <div className="chip-grid ratios">
+          {RATIO_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              className={`chip${state.maxPriceRatio === option.value ? ' is-active' : ''}`}
+              // druhý klik na tú istú voľbu filter zruší — inak by sa nedal
+              // vypnúť inak než Resetom, ktorý zmaže aj všetko ostatné
+              onClick={() =>
+                onChange({
+                  maxPriceRatio: state.maxPriceRatio === option.value ? undefined : option.value,
+                })
+              }
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        {state.maxPriceRatio != null && (
+          <p className="panel-note">
+            Porovnáva €/m² s mediánom okolia. Nižšia cena môže znamenať aj horší
+            stav alebo prízemie — nie je to samo o sebe dobrý obchod.
+          </p>
+        )}
+      </div>
+
       {savedCount > 0 && (
         <div className="panel-section">
           <button
@@ -109,6 +137,7 @@ export function FilterPanel({
               polygon: [],
               priceMin: undefined,
               priceMax: undefined,
+              maxPriceRatio: undefined,
             })
           }
         >
