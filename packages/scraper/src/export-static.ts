@@ -1,3 +1,4 @@
+import { PLAUSIBLE_PRICE_SQL } from '@rmb/shared';
 import { createHash } from 'node:crypto';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -40,7 +41,7 @@ export function exportStatic(): { markers: number; bytes: number } {
     .prepare<[], Record<string, unknown>>(
       `SELECT * FROM listings
         WHERE is_active = 1 AND duplicate_of IS NULL AND is_unavailable = 0
-          AND (price IS NULL OR price >= 1000)`,
+          AND ${PLAUSIBLE_PRICE_SQL}`,
     )
     .all();
 

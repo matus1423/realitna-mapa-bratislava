@@ -6,7 +6,7 @@ import type {
   PropertyType,
   ScrapedListing,
 } from '@rmb/shared';
-import { isDemandTitle, isUnavailableTitle } from '@rmb/shared';
+import { isDemandTitle, isUnavailableTitle, PLAUSIBLE_PRICE_SQL } from '@rmb/shared';
 import { getDb } from './client.js';
 
 interface ListingRow {
@@ -394,7 +394,8 @@ export function countListings(): { total: number; active: number; unique: number
     .prepare<[], { total: number; active: number; unique: number }>(
       `SELECT COUNT(*) AS total,
               SUM(is_active) AS active,
-              SUM(is_active = 1 AND duplicate_of IS NULL AND is_unavailable = 0) AS "unique"
+              SUM(is_active = 1 AND duplicate_of IS NULL AND is_unavailable = 0
+                  AND ${PLAUSIBLE_PRICE_SQL}) AS "unique"
          FROM listings`,
     )
     .get();
@@ -412,7 +413,8 @@ export function countBySource(): { source: string; total: number; unique: number
     .prepare<[], { source: string; total: number; unique: number }>(
       `SELECT source,
               COUNT(*) AS total,
-              SUM(duplicate_of IS NULL AND is_unavailable = 0) AS "unique"
+              SUM(duplicate_of IS NULL AND is_unavailable = 0
+                  AND ${PLAUSIBLE_PRICE_SQL}) AS "unique"
          FROM listings WHERE is_active = 1
         GROUP BY source ORDER BY total DESC`,
     )

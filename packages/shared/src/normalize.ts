@@ -110,3 +110,35 @@ export function isUnavailableTitle(title: string, dealType: DealType): boolean {
   // Mimo hry je len vtedy, keď ide o inzerát na prenájom.
   return dealType === 'prenajom' && /\b(prenajat)\w*/.test(normalized);
 }
+
+/**
+ * Hranice, za ktorými cena nie je cena, ale chyba zdroja alebo zástupná
+ * hodnota pre "cenu dohodou" (portály tam dávajú 0 alebo 1).
+ *
+ * Zámerne zvlášť pre predaj a prenájom. Kým bola hranica jedna spoločná
+ * (1000 €), zmysel dávala len pri predaji a ticho zhodila z mapy 55 %
+ * prenájmov — nájom za 800 € mesačne je v Bratislave úplne bežný.
+ */
+export const PRICE_BOUNDS: Record<DealType, { min: number; max: number }> = {
+  predaj: { min: 20_000, max: 20_000_000 },
+  prenajom: { min: 100, max: 50_000 },
+};
+
+/** Cena chýba (to je v poriadku, "dohodou"), alebo je v dôveryhodnom rozsahu. */
+export function isPlausiblePrice(price: number | null, dealType: DealType): boolean {
+  if (price == null) return true;
+  const bounds = PRICE_BOUNDS[dealType];
+  return price >= bounds.min && price <= bounds.max;
+}
+
+/**
+ * Tá istá podmienka pre SQL. Držíme ju vedľa funkcie zámerne — keď bolo
+ * pravidlo pre dopyty opísané raz v TypeScripte a raz zvlášť v SQL, obe
+ * verzie sa rozišli a kontrola hlásila nález, ktorý sa nedal opraviť.
+ */
+export const PLAUSIBLE_PRICE_SQL =
+  '(price IS NULL OR ' +
+  (Object.entries(PRICE_BOUNDS) as [DealType, { min: number; max: number }][])
+    .map(([deal, b]) => `(deal_type = '${deal}' AND price BETWEEN ${b.min} AND ${b.max})`)
+    .join(' OR ') +
+  ')';

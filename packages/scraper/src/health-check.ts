@@ -1,5 +1,5 @@
 import { countBySource, countListings, getDb } from '@rmb/db';
-import { isDemandTitle } from '@rmb/shared';
+import { isDemandTitle, PRICE_BOUNDS } from '@rmb/shared';
 
 /**
  * Kontrola po zbere. Testy overujú, že kód robí, čo má; toto overuje, že
@@ -72,7 +72,7 @@ export function healthCheck(): HealthReport {
     .prepare<[], { c: number }>(
       `SELECT COUNT(*) AS c FROM listings
         WHERE is_active = 1 AND deal_type = 'predaj' AND price IS NOT NULL
-          AND (price < 20000 OR price > 20000000)`,
+          AND price NOT BETWEEN ${PRICE_BOUNDS.predaj.min} AND ${PRICE_BOUNDS.predaj.max}`,
     )
     .get()!.c;
   if (nezmyselneCeny > 0) summary.push(`nezmyselných cien: ${nezmyselneCeny} (na mapu nejdú)`);

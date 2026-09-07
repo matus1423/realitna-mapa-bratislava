@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   isDemandTitle,
+  isPlausiblePrice,
   isUnavailableTitle,
   parseNumber,
   parseRooms,
@@ -91,4 +92,25 @@ test('isDemandTitle: dopyt nie je ponuka', () => {
 test('isDemandTitle: ponuku s podobným slovom nechá tak', () => {
   assert.equal(isDemandTitle('3 izbový byt na predaj, Palisády'), false);
   assert.equal(isDemandTitle('Byt, ktorý hľadáte, je tu'), false, 'sloveso nie je na začiatku');
+});
+
+/**
+ * Jedna spoločná hranica 1000 € dávala zmysel len pri predaji a ticho
+ * zhodila z mapy 55 % prenájmov — nájom za 800 € je v Bratislave bežný.
+ */
+test('isPlausiblePrice: nájom za 800 € je bežný, byt za 800 € je chyba zdroja', () => {
+  assert.equal(isPlausiblePrice(800, 'prenajom'), true);
+  assert.equal(isPlausiblePrice(800, 'predaj'), false);
+});
+
+test('isPlausiblePrice: chýbajúca cena je "dohodou", nie chyba', () => {
+  assert.equal(isPlausiblePrice(null, 'predaj'), true);
+  assert.equal(isPlausiblePrice(null, 'prenajom'), true);
+});
+
+test('isPlausiblePrice: zástupné nuly a nezmyselné výšky vypadnú', () => {
+  assert.equal(isPlausiblePrice(0, 'prenajom'), false, 'cena na vyžiadanie');
+  assert.equal(isPlausiblePrice(1, 'predaj'), false);
+  assert.equal(isPlausiblePrice(60_000, 'prenajom'), false, 'to už je predajná cena');
+  assert.equal(isPlausiblePrice(250_000, 'predaj'), true);
 });
