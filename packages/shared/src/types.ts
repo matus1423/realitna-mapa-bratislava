@@ -102,8 +102,17 @@ export interface ListingMarker {
   rooms: number | null;
   /** Zmena ceny oproti prvej videnej cene (záporná = zlacnelo). */
   priceDiff: number | null;
-  /** Inzerát pribudol za posledných 7 dní. */
-  isNew: boolean;
+  /**
+   * Deň, keď sme inzerát prvý raz videli (YYYY-MM-DD). Z neho sa počíta,
+   * čo pribudlo od poslednej návštevy.
+   */
+  seenOn: string;
+  /**
+   * Deň zverejnenia na portáli, ak ho portál uvádza (YYYY-MM-DD). Má ho
+   * ~83 % inzerátov; pri zvyšku sa dĺžka v ponuke počíta od prvého videnia
+   * a označuje sa ako približná.
+   */
+  publishedOn: string | null;
   /** Poloha je len približná (ťažisko PSČ), nie adresa. */
   imprecise: boolean;
   /** Pomer ceny k okoliu; 0,85 = o 15 % lacnejší než okolie. */

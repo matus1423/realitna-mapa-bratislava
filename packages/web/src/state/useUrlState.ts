@@ -17,6 +17,8 @@ export interface MapState {
   rooms: number[];
   /** Horná hranica pomeru ceny k okoliu; 0,9 = aspoň o 10 % lacnejšie. */
   maxPriceRatio?: number;
+  /** Minimálny počet dní v ponuke. */
+  minDaysOnMarket?: number;
   /** Vyznačená oblasť; prázdne pole = bez obmedzenia. */
   polygon: Point[];
 }
@@ -54,6 +56,7 @@ function readUrl(): MapState {
     priceMin: num('price_min'),
     priceMax: num('price_max'),
     maxPriceRatio: num('max_ratio'),
+    minDaysOnMarket: num('min_days'),
     polygon: decodePolygon(p.get('poly')),
     rooms:
       p
@@ -74,6 +77,7 @@ function writeUrl(state: MapState): void {
   if (state.priceMin != null) p.set('price_min', String(state.priceMin));
   if (state.priceMax != null) p.set('price_max', String(state.priceMax));
   if (state.maxPriceRatio != null) p.set('max_ratio', String(state.maxPriceRatio));
+  if (state.minDaysOnMarket != null) p.set('min_days', String(state.minDaysOnMarket));
   if (state.rooms.length) p.set('rooms', state.rooms.join(','));
   if (state.polygon.length >= 3) p.set('poly', encodePolygon(state.polygon));
 

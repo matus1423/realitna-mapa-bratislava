@@ -1,4 +1,5 @@
 import type { ListingMarker } from '@rmb/shared';
+import { daysOnMarket } from '../format.js';
 import type { MapState } from '../state/useUrlState.js';
 
 /**
@@ -12,6 +13,26 @@ export const RATIO_OPTIONS = [
   { value: 0.8, label: '−20 %' },
   { value: 0.7, label: '−30 %' },
 ] as const;
+
+/**
+ * Prahy pre „ako dlho je byt v ponuke“. Čím dlhšie visí, tým väčší býva
+ * priestor na vyjednávanie — a tým väčšia šanca, že s ním niečo je.
+ */
+export const DAYS_OPTIONS = [
+  { value: 30, label: '30+ dní' },
+  { value: 60, label: '60+ dní' },
+  { value: 90, label: '90+ dní' },
+] as const;
+
+/**
+ * Dĺžka v ponuke. Dátum z portálu má ~83 % inzerátov; pri zvyšku sa počíta
+ * od nášho prvého videnia, čo je spodný odhad — taký byt mohol visieť už
+ * predtým, len sme o ňom nevedeli. Filter ich preto púšťa ďalej: radšej
+ * ukázať byt, ktorý možno visí dlhšie, než zamlčať ten, čo naozaj visí.
+ */
+export function markerDaysOnMarket(marker: ListingMarker): number | null {
+  return daysOnMarket(marker.publishedOn, marker.seenOn)?.days ?? null;
+}
 
 /**
  * Cena a dispozícia sa v statickom režime filtrujú u klienta — nemá to kto
@@ -34,6 +55,11 @@ export function applyFilters(
     out = out.filter((m) => m.priceRatio != null && m.priceRatio <= max);
   }
 
+  if (state.minDaysOnMarket != null) {
+    const min = state.minDaysOnMarket;
+    out = out.filter((m) => (markerDaysOnMarket(m) ?? 0) >= min);
+  }
+
   if (!clientSide) return out;
 
   return out.filter((m) => {
@@ -48,4 +74,13 @@ export function applyFilters(
     }
     return true;
   });
+}
+
+/**
+ * Inzeráty, ktoré pribudli od poslednej návštevy. Pri prvej návšteve
+ * (`since` je `null`) nie je nové nič — zvýrazniť všetko nič nepovie.
+ */
+export function onlyNewSince(markers: ListingMarker[], since: string | null): ListingMarker[] {
+  if (since == null) return [];
+  return markers.filter((m) => m.seenOn > since);
 }

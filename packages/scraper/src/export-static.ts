@@ -74,7 +74,6 @@ export function exportStatic(): { markers: number; bytes: number } {
 
   const markers: Record<string, unknown[]> = { predaj: [], prenajom: [] };
   const details: Record<string, unknown>[][] = Array.from({ length: BUCKETS }, () => []);
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
   for (const row of rows) {
     const id = row['id'] as string;
@@ -89,7 +88,8 @@ export function exportStatic(): { markers: number; bytes: number } {
       propertyType: row['property_type'],
       rooms: row['rooms'],
       priceDiff: price != null && firstPrice != null && firstPrice !== price ? price - firstPrice : null,
-      isNew: row['published_at'] != null && Date.parse(row['published_at'] as string) > weekAgo,
+      seenOn: (row['first_seen_at'] as string).slice(0, 10),
+      publishedOn: (row['published_at'] as string | null)?.slice(0, 10) ?? null,
       imprecise: (row['location_radius'] as number | null ?? 0) >= 1000,
       priceRatio: row['price_ratio'],
     });

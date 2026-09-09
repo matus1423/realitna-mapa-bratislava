@@ -240,13 +240,14 @@ export function findMarkersInBBox(opts: FindOptions): ListingMarker[] {
       property_type: string;
       rooms: number | null;
       first_price: number | null;
+      first_seen_at: string;
       published_at: string | null;
       location_radius: number | null;
       price_ratio: number | null;
     }>(
       `SELECT
          l.id, l.lat, l.lng, l.price, l.property_type, l.rooms, l.published_at,
-         l.location_radius, l.price_ratio,
+         l.first_seen_at, l.location_radius, l.price_ratio,
          (SELECT ph.price FROM price_history ph
            WHERE ph.listing_id = l.id
            ORDER BY ph.seen_at ASC LIMIT 1) AS first_price
@@ -256,7 +257,6 @@ export function findMarkersInBBox(opts: FindOptions): ListingMarker[] {
     )
     .all(...params, limit);
 
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
   return rows.map((row) => ({
     id: row.id,
@@ -269,7 +269,8 @@ export function findMarkersInBBox(opts: FindOptions): ListingMarker[] {
       row.price != null && row.first_price != null && row.first_price !== row.price
         ? row.price - row.first_price
         : null,
-    isNew: row.published_at != null && Date.parse(row.published_at) > weekAgo,
+    seenOn: row.first_seen_at.slice(0, 10),
+    publishedOn: row.published_at?.slice(0, 10) ?? null,
     priceRatio: row.price_ratio,
     // Bazoš dáva len ťažisko PSČ — taký bod nesmie na mape vyzerať
     // rovnako sebavedomo ako adresa presná na ulicu

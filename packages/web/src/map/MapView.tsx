@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Supercluster from 'supercluster';
 import { isStatic, loadMarkers } from '../data.js';
-import { applyFilters } from './filter.js';
+import { applyFilters, onlyNewSince } from './filter.js';
 import type { MapState } from '../state/useUrlState.js';
 import { groupByCoordinate, type MarkerGroup } from './grouping.js';
 import { createClusterIcon, createPriceIcon } from './icons.js';
@@ -15,9 +15,13 @@ interface Props {
   onViewChange: (view: { lat: number; lon: number; zoom: number }) => void;
   onSelect: (ids: string[]) => void;
   onCountChange: (count: number) => void;
+  onNewCountChange: (count: number) => void;
   selectedIds: string[];
   savedIds: Set<string>;
   onlySaved: boolean;
+  onlyNew: boolean;
+  /** Deň poslednej návštevy; `null` pri prvej. */
+  lastVisit: string | null;
   drawing: boolean;
   onPolygonChange: (polygon: Point[]) => void;
 }
@@ -48,9 +52,12 @@ export function MapView({
   onViewChange,
   onSelect,
   onCountChange,
+  onNewCountChange,
   selectedIds,
   savedIds,
   onlySaved,
+  onlyNew,
+  lastVisit,
   drawing,
   onPolygonChange,
 }: Props) {
@@ -155,26 +162,44 @@ export function MapView({
     state.rooms,
   ]);
 
-  // počet vo výreze hlásime až po filtri, nech sedí s tým, čo je vidieť
-  useEffect(() => {
-    let visible = applyFilters(markers, state, isStatic);
-    if (onlySaved) visible = visible.filter((m) => savedIds.has(m.id));
+  // Jedna sada filtrov pre počty aj pre vykreslenie. Kým to bolo opísané
+  // dvakrát, hrozilo, že sa počet vo výreze rozíde s tým, čo je na mape.
+  //
+  // "Len uložené" ide na klientovi — ID uložených sú v prehliadači a posielať
+  // ich na server by znamenalo tlačiť tam osobný zoznam. To isté platí pre
+  // poslednú návštevu.
+  const baseVisible = useMemo(() => {
+    let out = applyFilters(markers, state, isStatic);
+    if (onlySaved) out = out.filter((m) => savedIds.has(m.id));
     if (state.polygon.length >= 3) {
-      visible = visible.filter((m) => isInside([m.lat, m.lng], state.polygon));
+      out = out.filter((m) => isInside([m.lat, m.lng], state.polygon));
     }
+    return out;
+  }, [markers, onlySaved, savedIds, state]);
+
+  const freshCount = useMemo(
+    () => onlyNewSince(baseVisible, lastVisit).length,
+    [baseVisible, lastVisit],
+  );
+
+  const visible = useMemo(
+    () => (onlyNew ? onlyNewSince(baseVisible, lastVisit) : baseVisible),
+    [baseVisible, onlyNew, lastVisit],
+  );
+
+  useEffect(() => {
     onCountChange(visible.length);
-  }, [markers, onlySaved, savedIds, state, onCountChange]);
+  }, [visible, onCountChange]);
+
+  // Hlásime bez ohľadu na prepínač — inak by sa číslo v tlačidle po zapnutí
+  // zmenilo samo na seba a prestalo dávať zmysel.
+  useEffect(() => {
+    onNewCountChange(freshCount);
+  }, [freshCount, onNewCountChange]);
 
   // --- clustering ------------------------------------------------------------
   const index = useMemo(() => {
-    // "len uložené" filtrujeme na klientovi — ID uložených sú v prehliadači
-    // a posielať ich na server by znamenalo tlačiť tam osobný zoznam
-    let visible = applyFilters(markers, state, isStatic);
-    if (onlySaved) visible = visible.filter((m) => savedIds.has(m.id));
-    if (state.polygon.length >= 3) {
-      visible = visible.filter((m) => isInside([m.lat, m.lng], state.polygon));
-    }
-    const groups = groupByCoordinate(visible);
+    const groups = groupByCoordinate(visible, lastVisit);
     const sc = new Supercluster<GroupProps, ClusterProps>({
       radius: 60,
       // nad zoom 15 už zhluky nechceme — tam sa majú ukazovať ceny
@@ -189,7 +214,7 @@ export function MapView({
       })),
     );
     return sc;
-  }, [markers, onlySaved, savedIds, state]);
+  }, [visible, lastVisit]);
 
   // --- kreslenie oblasti ------------------------------------------------------
   useEffect(() => {

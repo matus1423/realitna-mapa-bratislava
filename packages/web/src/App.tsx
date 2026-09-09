@@ -3,6 +3,7 @@ import { FilterPanel } from './filters/FilterPanel.js';
 import { ListingPopup } from './listing/ListingPopup.js';
 import { MapView } from './map/MapView.js';
 import type { Point } from './map/polygon.js';
+import { useLastVisit } from './state/useLastVisit.js';
 import { useSaved } from './state/useSaved.js';
 import { useUrlState } from './state/useUrlState.js';
 
@@ -12,6 +13,9 @@ export function App() {
   const [visibleCount, setVisibleCount] = useState(0);
   const { saved, isSaved, toggle } = useSaved();
   const [onlySaved, setOnlySaved] = useState(false);
+  const lastVisit = useLastVisit();
+  const [onlyNew, setOnlyNew] = useState(false);
+  const [newCount, setNewCount] = useState(0);
   const [drawing, setDrawing] = useState(false);
 
   const handlePolygonChange = useCallback(
@@ -42,6 +46,9 @@ export function App() {
           savedCount={saved.size}
           onlySaved={onlySaved}
           onOnlySavedChange={setOnlySaved}
+          newCount={newCount}
+          onlyNew={onlyNew}
+          onOnlyNewChange={setOnlyNew}
           hasPolygon={state.polygon.length >= 3}
         />
 
@@ -51,9 +58,12 @@ export function App() {
             onViewChange={handleViewChange}
             onSelect={setSelectedIds}
             onCountChange={setVisibleCount}
+            onNewCountChange={setNewCount}
             selectedIds={selectedIds}
             savedIds={saved}
             onlySaved={onlySaved}
+            onlyNew={onlyNew}
+            lastVisit={lastVisit}
             drawing={drawing}
             onPolygonChange={handlePolygonChange}
           />

@@ -18,6 +18,7 @@ export interface MarkerGroup {
   price: number | null;
   /** Najväčšie zlacnenie v skupine. */
   priceDiff: number | null;
+  /** Aspoň jeden inzerát v skupine pribudol od poslednej návštevy. */
   hasNew: boolean;
   propertyType: string;
   /** Pomer ceny k okoliu; berieme z najlacnejšieho bytu v skupine. */
@@ -27,8 +28,17 @@ export interface MarkerGroup {
   imprecise: boolean;
 }
 
-export function groupByCoordinate(markers: ListingMarker[]): MarkerGroup[] {
+/**
+ * `newSince` je deň poslednej návštevy (YYYY-MM-DD). Inzeráty videné neskôr
+ * dostanú na pilulke bodku. Pri prvej návšteve je `null` a nové nie je nič —
+ * inak by sa zvýraznilo úplne všetko, čo nikomu nič nepovie.
+ */
+export function groupByCoordinate(
+  markers: ListingMarker[],
+  newSince: string | null = null,
+): MarkerGroup[] {
   const groups = new Map<string, MarkerGroup>();
+  const isNew = (m: ListingMarker): boolean => newSince != null && m.seenOn > newSince;
 
   for (const marker of markers) {
     // 5 desatinných miest ≈ 1 m, čo je pod presnosťou zdroja
@@ -44,7 +54,7 @@ export function groupByCoordinate(markers: ListingMarker[]): MarkerGroup[] {
         count: 1,
         price: marker.price,
         priceDiff: marker.priceDiff,
-        hasNew: marker.isNew,
+        hasNew: isNew(marker),
         propertyType: marker.propertyType,
         priceRatio: marker.priceRatio,
         rooms: marker.rooms,
@@ -63,7 +73,7 @@ export function groupByCoordinate(markers: ListingMarker[]): MarkerGroup[] {
     if (marker.priceDiff != null && (existing.priceDiff == null || marker.priceDiff < existing.priceDiff)) {
       existing.priceDiff = marker.priceDiff;
     }
-    if (marker.isNew) existing.hasNew = true;
+    if (isNew(marker)) existing.hasNew = true;
     if (marker.imprecise) existing.imprecise = true;
   }
 

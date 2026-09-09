@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { decodePolygon, encodePolygon, isInside, type Point } from '../src/map/polygon.js';
 import { compactPrice, daysOnMarket, priceRatioLabel, yieldTone } from '../src/format.js';
 import { groupByCoordinate } from '../src/map/grouping.js';
-import { applyFilters, RATIO_OPTIONS } from '../src/map/filter.js';
+import { applyFilters, markerDaysOnMarket, onlyNewSince, RATIO_OPTIONS } from '../src/map/filter.js';
 import type { MapState } from '../src/state/useUrlState.js';
 
 const STARE_MESTO: Point[] = [
@@ -37,7 +37,7 @@ test('inzeráty na tej istej súradnici sa zlúčia do jedného markera', () => 
   // Bez zlúčenia by sa markery prekrývali a spodné by sa nedali kliknúť.
   const marker = (id: string, price: number, lat = 48.15) => ({
     id, lat, lng: 17.11, price, propertyType: 'byt' as const, rooms: 2,
-    priceDiff: null, isNew: false, imprecise: false, priceRatio: null,
+    priceDiff: null, seenOn: '2026-01-01', publishedOn: null, imprecise: false, priceRatio: null,
   });
 
   const groups = groupByCoordinate([
@@ -92,7 +92,7 @@ function marker(priceRatio: number | null, over: Record<string, unknown> = {}) {
   return {
     id: `m${m}`, lat: 48.15, lng: 17.11, price: 300_000,
     propertyType: 'byt' as const, rooms: 3,
-    priceDiff: null, isNew: false, imprecise: false, priceRatio,
+    priceDiff: null, seenOn: '2026-01-01', publishedOn: null, imprecise: false, priceRatio,
     ...over,
   };
 }
@@ -133,4 +133,48 @@ test('filter podľa okolia: prahy sú zoradené od najmiernejšieho', () => {
   const values = RATIO_OPTIONS.map((o) => o.value);
   assert.deepEqual(values, [...values].sort((a, b) => b - a));
   assert.ok(values.every((v) => v < 1), 'každý prah musí byť pod úrovňou okolia');
+});
+
+function dnyDozadu(days: number): string {
+  return new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+}
+
+test('dĺžka v ponuke: dátum z portálu má prednosť pred prvým videním', () => {
+  const m = marker(null, { publishedOn: dnyDozadu(120), seenOn: dnyDozadu(10) });
+  const dni = markerDaysOnMarket(m);
+
+  assert.ok(dni != null && dni >= 119 && dni <= 121, `čakali sme ~120, dostali ${dni}`);
+});
+
+test('filter v ponuke: nechá len byty visiace dosť dlho', () => {
+  const cerstvy = marker(null, { publishedOn: dnyDozadu(3), seenOn: dnyDozadu(3) });
+  const stary = marker(null, { publishedOn: dnyDozadu(95), seenOn: dnyDozadu(95) });
+
+  const found = applyFilters([cerstvy, stary], { ...STAV, minDaysOnMarket: 90 }, true);
+  assert.deepEqual(found.map((x) => x.id), [stary.id]);
+});
+
+/**
+ * Bez dátumu z portálu je dĺžka v ponuke len spodný odhad — byt mohol visieť
+ * dávno predtým, než sme o ňom vedeli. Zamlčať ho by bola horšia chyba než
+ * ukázať ho.
+ */
+test('filter v ponuke: byt bez dátumu z portálu sa počíta od prvého videnia', () => {
+  const m = marker(null, { publishedOn: null, seenOn: dnyDozadu(100) });
+  const found = applyFilters([m], { ...STAV, minDaysOnMarket: 90 }, true);
+
+  assert.equal(found.length, 1);
+});
+
+test('nové od minule: berie sa prvé videnie, nie dátum zverejnenia', () => {
+  // starý inzerát, ktorý sme ale objavili až včera — pre teba je nový
+  const objaveny = marker(null, { publishedOn: dnyDozadu(200), seenOn: '2026-03-10' });
+  const znamy = marker(null, { publishedOn: dnyDozadu(2), seenOn: '2026-03-01' });
+
+  const found = onlyNewSince([objaveny, znamy], '2026-03-05');
+  assert.deepEqual(found.map((x) => x.id), [objaveny.id]);
+});
+
+test('nové od minule: pri prvej návšteve nie je nové nič', () => {
+  assert.deepEqual(onlyNewSince([marker(null), marker(null)], null), []);
 });

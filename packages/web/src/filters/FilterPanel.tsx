@@ -1,5 +1,5 @@
 import type { DealType } from '@rmb/shared';
-import { RATIO_OPTIONS } from '../map/filter.js';
+import { DAYS_OPTIONS, RATIO_OPTIONS } from '../map/filter.js';
 import type { MapState } from '../state/useUrlState.js';
 
 interface Props {
@@ -9,6 +9,9 @@ interface Props {
   savedCount: number;
   onlySaved: boolean;
   onOnlySavedChange: (value: boolean) => void;
+  newCount: number;
+  onlyNew: boolean;
+  onOnlyNewChange: (value: boolean) => void;
   hasPolygon: boolean;
 }
 
@@ -31,6 +34,9 @@ export function FilterPanel({
   savedCount,
   onlySaved,
   onOnlySavedChange,
+  newCount,
+  onlyNew,
+  onOnlyNewChange,
   hasPolygon,
 }: Props) {
   return (
@@ -113,6 +119,43 @@ export function FilterPanel({
         )}
       </div>
 
+      <div className="panel-section">
+        <label className="panel-label">V ponuke</label>
+        <div className="chip-grid ratios">
+          {DAYS_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              className={`chip${state.minDaysOnMarket === option.value ? ' is-active' : ''}`}
+              onClick={() =>
+                onChange({
+                  minDaysOnMarket:
+                    state.minDaysOnMarket === option.value ? undefined : option.value,
+                })
+              }
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        {state.minDaysOnMarket != null && (
+          <p className="panel-note">
+            Čím dlhšie byt visí, tým väčší býva priestor na vyjednávanie. Pri inzerátoch
+            bez dátumu z portálu počítame od prvého videnia, takže to je spodný odhad.
+          </p>
+        )}
+      </div>
+
+      {newCount > 0 && (
+        <div className="panel-section">
+          <button
+            className={`chip saved-toggle${onlyNew ? ' is-active' : ''}`}
+            onClick={() => onOnlyNewChange(!onlyNew)}
+          >
+            Len nové od minule ({newCount})
+          </button>
+        </div>
+      )}
+
       {savedCount > 0 && (
         <div className="panel-section">
           <button
@@ -138,6 +181,7 @@ export function FilterPanel({
               priceMin: undefined,
               priceMax: undefined,
               maxPriceRatio: undefined,
+              minDaysOnMarket: undefined,
             })
           }
         >
