@@ -2,11 +2,12 @@ name: Zber inzerátov
 
 on:
   schedule:
-    # 03:00 UTC = 5:00 letného času. V zime to vyjde na 4:00 — GitHub cron
-    # nepozná časové pásma a kvôli hodine to nestojí za dva rozvrhy.
-    - cron: '0 3 * * *'
+    # Nepárna minúta a o hodinu skôr zámerne. Pri '0 3 * * *' štartovali behy
+    # reálne až okolo 07:45 UTC — GitHub plánované behy odkladá a celá hodina
+    # je najvyťaženejší čas. Aj keby meškanie ostalo, mapa je hotová skôr.
+    - cron: '17 2 * * *'
     # topreality si v robots.txt pýta 6 s na request, takže beží raz týždenne
-    - cron: '30 3 * * 0'
+    - cron: '47 2 * * 0'
   workflow_dispatch:
     inputs:
       sources:
@@ -32,6 +33,23 @@ jobs:
 
       - run: npm ci
 
+      # Bez tokenu sa mapa nemá ako dostať na doménu. Kým mali kroky na
+      # zostavenie a nasadenie len podmienku `if: env.VERCEL_TOKEN != ''`,
+      # chýbajúci token ich ticho preskočil a beh sa nahlásil ako úspešný —
+      # mapa by zamrzla a nikto by sa to nedozvedel. To je presne ten druh
+      # tichého zlyhania, ktoré tu už raz stálo štyri dni.
+      #
+      # Kontrolujeme hneď na začiatku: nemá zmysel dve hodiny zaťažovať
+      # portály zberom, ktorý sa aj tak nemá kam nasadiť.
+      - name: Overiť token na Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::Chýba secret VERCEL_TOKEN. Mapa by sa nenasadila a beh by to nezahlásil."
+            exit 1
+          fi
+
       # Databáza má 27 MB a do gitu nepatrí — každodenný commit by z histórie
       # spravil desiatky gigabajtov. Cache ju prenesie medzi behmi; ak vypadne,
       # crawl si ju naplní odznova, len to potrvá dlhšie.
@@ -47,7 +65,10 @@ jobs:
         run: |
           if [ -n "${{ inputs.sources }}" ]; then
             echo "sources=${{ inputs.sources }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "30 3 * * 0" ]; then
+          # Pozor: musí sa zhodovať s týždenným cronom hore, znak po znaku.
+          # Inak by nedeľa ticho zbierala rýchle zdroje a topreality by
+          # nezbieral nikto.
+          elif [ "${{ github.event.schedule }}" = "47 2 * * 0" ]; then
             echo "sources=topreality" >> "$GITHUB_OUTPUT"
           else
             echo "sources=nehnutelnosti,zoznamrealit,bazos" >> "$GITHUB_OUTPUT"
@@ -101,7 +122,6 @@ jobs:
       # Dáta idú priamo do buildu, nie na verejnú URL — repo tak môže ostať
       # súkromné a dataset nie je nikde samostatne stiahnuteľný.
       - name: Zostaviť mapu
-        if: env.VERCEL_TOKEN != ''
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VITE_DATA_URL: /data
@@ -117,7 +137,6 @@ jobs:
       # `link --yes --project` je idempotentné: pri prvom behu projekt založí,
       # pri ďalších sa naň len napojí, takže netreba nič klikať dopredu.
       - name: Nasadiť na Vercel
-        if: env.VERCEL_TOKEN != ''
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
