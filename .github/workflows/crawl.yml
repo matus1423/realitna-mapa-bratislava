@@ -19,9 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 330
 
-    # zápis kvôli vetve `data`; predvolene má token len čítanie
+    # Zápis netreba — odkedy sa nepublikuje vetva `data`, beh do repa nič
+    # nezapisuje. Na verejnom repe je to o to podstatnejšie.
     permissions:
-      contents: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -105,19 +106,12 @@ jobs:
       - name: Statický export
         run: npm run export -w @rmb/scraper
 
-      # Export ide na vetvu `data` s jediným commitom (force-push), takže
-      # história repa nerastie o pol megabajtu denne. Slúži ako záloha
-      # a na to, aby sa dalo pozrieť, čo posledný beh vyrobil.
-      - name: Publikovať dáta
-        run: |
-          cd data/export
-          git init -q
-          git checkout -q -b data
-          git config user.name "crawl bot"
-          git config user.email "bot@users.noreply.github.com"
-          git add -A
-          git commit -q -m "Dáta $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data
+      # Vetvu `data` už nepublikujeme. Repo je verejné kvôli minútam na
+      # Actions, takže by z nej bol verejne stiahnuteľný celý dataset —
+      # a to je presne to, čomu sme sa od začiatku chceli vyhnúť. Export
+      # ide rovno do buildu a na mapu, nikam inam.
+      #
+      # Ak by raz bola potrebná záloha, patrí niekam mimo repa.
 
       # Dáta idú priamo do buildu, nie na verejnú URL — repo tak môže ostať
       # súkromné a dataset nie je nikde samostatne stiahnuteľný.

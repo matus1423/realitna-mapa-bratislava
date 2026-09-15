@@ -42,3 +42,13 @@ test('chýbajúci token na Vercel musí beh zhodiť, nie ticho preskočiť', () 
     'chýba kontrola, ktorá pri prázdnom tokene beh zhodí',
   );
 });
+
+/**
+ * Repo je verejné kvôli minútam na Actions. Keby sa publikovanie vetvy `data`
+ * vrátilo, bol by z nej verejne stiahnuteľný celý dataset — presne to, čomu
+ * sme sa chceli vyhnúť. Beh preto nemá do repa čo zapisovať.
+ */
+test('dataset sa nesmie publikovať do repa', () => {
+  assert.ok(!/checkout -q -b data/.test(kod), 'vetva `data` sa nesmie publikovať');
+  assert.ok(!/contents: write/.test(kod), 'beh nemá dôvod zapisovať do verejného repa');
+});
