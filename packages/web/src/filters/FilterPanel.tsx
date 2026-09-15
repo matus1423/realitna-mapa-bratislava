@@ -1,4 +1,5 @@
 import type { DealType } from '@rmb/shared';
+import { shortDay } from '../format.js';
 import { DAYS_OPTIONS, RATIO_OPTIONS } from '../map/filter.js';
 import type { MapState } from '../state/useUrlState.js';
 
@@ -11,6 +12,8 @@ interface Props {
   onOnlySavedChange: (value: boolean) => void;
   newCount: number;
   onlyNew: boolean;
+  /** Deň predchádzajúcej návštevy; `null` pri prvej. */
+  lastVisit: string | null;
   onOnlyNewChange: (value: boolean) => void;
   hasPolygon: boolean;
 }
@@ -37,6 +40,7 @@ export function FilterPanel({
   newCount,
   onlyNew,
   onOnlyNewChange,
+  lastVisit,
   hasPolygon,
 }: Props) {
   return (
@@ -145,16 +149,29 @@ export function FilterPanel({
         )}
       </div>
 
-      {newCount > 0 && (
-        <div className="panel-section">
+      {/*
+        Sekcia je tu vždy, aj keď je prázdna. Kým sa skrývala pri nule,
+        vyzerala ako chýbajúca funkcia — a presne tak aj pôsobila: bola
+        nasadená, fungovala, len ju nebolo kedy vidieť.
+      */}
+      <div className="panel-section">
+        <label className="panel-label">Nové inzeráty</label>
+        {lastVisit == null ? (
+          <p className="panel-note">
+            Toto je prvá návšteva, takže porovnávať nie je s čím. Keď prídeš nabudúce,
+            uvidíš tu, čo odvtedy pribudlo.
+          </p>
+        ) : newCount === 0 ? (
+          <p className="panel-note">Od {shortDay(lastVisit)} nepribudol vo výreze žiadny byt.</p>
+        ) : (
           <button
             className={`chip saved-toggle${onlyNew ? ' is-active' : ''}`}
             onClick={() => onOnlyNewChange(!onlyNew)}
           >
-            Len nové od minule ({newCount})
+            Len nové od {shortDay(lastVisit)} ({newCount})
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {savedCount > 0 && (
         <div className="panel-section">

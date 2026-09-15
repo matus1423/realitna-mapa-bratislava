@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { decodePolygon, encodePolygon, isInside, type Point } from '../src/map/polygon.js';
-import { compactPrice, daysOnMarket, priceRatioLabel, yieldTone } from '../src/format.js';
+import { compactPrice, daysOnMarket, priceRatioLabel, shortDay, yieldTone } from '../src/format.js';
 import { groupByCoordinate } from '../src/map/grouping.js';
 import { applyFilters, markerDaysOnMarket, onlyNewSince, RATIO_OPTIONS } from '../src/map/filter.js';
 import type { MapState } from '../src/state/useUrlState.js';
@@ -177,4 +177,9 @@ test('nové od minule: berie sa prvé videnie, nie dátum zverejnenia', () => {
 
 test('nové od minule: pri prvej návšteve nie je nové nič', () => {
   assert.deepEqual(onlyNewSince([marker(null), marker(null)], null), []);
+});
+
+test('krátky deň: bez núl navyše', () => {
+  assert.equal(shortDay('2026-09-11'), '11. 9.');
+  assert.equal(shortDay('2026-01-05'), '5. 1.');
 });

@@ -49,6 +49,7 @@ export function App() {
           newCount={newCount}
           onlyNew={onlyNew}
           onOnlyNewChange={setOnlyNew}
+          lastVisit={lastVisit}
           hasPolygon={state.polygon.length >= 3}
         />
 

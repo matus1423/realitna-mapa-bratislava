@@ -91,3 +91,9 @@ export function yieldTone(grossYield: number): 'good' | 'bad' | 'neutral' {
   if (grossYield < 0.035) return 'bad';
   return 'neutral';
 }
+
+/** Deň v tvare „11. 9." — na krátke popisky, kde celý dátum zavadzia. */
+export function shortDay(iso: string): string {
+  const [, month, day] = iso.split('-');
+  return `${Number(day)}. ${Number(month)}.`;
+}
